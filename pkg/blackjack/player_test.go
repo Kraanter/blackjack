@@ -6,7 +6,7 @@ import (
 )
 
 func TestPlayerPlacesBetWithdrawsFundsAndCreatesHand(t *testing.T) {
-	player := blackjack.CreatePlayer(10)
+	player := blackjack.CreatePlayer(0, 10)
 	want := 0
 
 	err := player.PlaceBet(10)
@@ -21,7 +21,7 @@ func TestPlayerPlacesBetWithdrawsFundsAndCreatesHand(t *testing.T) {
 }
 
 func TestPlayerPlacesBetThrowsErrorIfNotEnoughBalance(t *testing.T) {
-	player := blackjack.CreatePlayer(0)
+	player := blackjack.CreatePlayer(0, 0)
 
 	err := player.PlaceBet(1)
 
@@ -31,11 +31,21 @@ func TestPlayerPlacesBetThrowsErrorIfNotEnoughBalance(t *testing.T) {
 }
 
 func TestPlayerPlacesBetThrowsErrorIfBetToLow(t *testing.T) {
-	player := blackjack.CreatePlayer(0)
+	player := blackjack.CreatePlayer(0, 0)
 
 	err := player.PlaceBet(0)
 
 	if err == nil {
 		t.Fatalf(`player.PlaceBet(0), should return error`)
+	}
+}
+
+func TestPlayerDestroyReturnsBalance(t *testing.T) {
+	want := uint(10)
+	player := blackjack.CreatePlayer(0, want)
+
+	balance := player.Destroy()
+	if balance != want {
+		t.Fatalf(`player.Destory() = %v, want match for %v`, balance, want)
 	}
 }
