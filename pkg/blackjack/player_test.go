@@ -1,8 +1,9 @@
 package blackjack_test
 
 import (
-	"blackjack/pkg/blackjack"
 	"testing"
+
+	"github.com/kraanter/blackjack/pkg/blackjack"
 )
 
 func TestPlayerPlacesBetWithdrawsFundsAndCreatesHand(t *testing.T) {

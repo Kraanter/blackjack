@@ -1,8 +1,9 @@
 package blackjack
 
 import (
-	"blackjack/pkg/assert"
 	"strconv"
+
+	"github.com/kraanter/blackjack/pkg/assert"
 )
 
 type Suit int

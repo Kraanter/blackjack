@@ -1,8 +1,9 @@
 package blackjack_test
 
 import (
-	"blackjack/pkg/blackjack"
 	"testing"
+
+	"github.com/kraanter/blackjack/pkg/blackjack"
 )
 
 // This test does not do anything because it is just in the String Func

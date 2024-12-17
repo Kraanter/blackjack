@@ -1,8 +1,9 @@
 package main
 
 import (
-	"blackjack/pkg/blackjack"
 	"fmt"
+
+	"github.com/kraanter/blackjack/pkg/blackjack"
 )
 
 func main() {
