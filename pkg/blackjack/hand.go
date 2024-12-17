@@ -3,8 +3,9 @@ package blackjack
 import ()
 
 type Hand struct {
-	cards  []*Card
-	bet    uint
+	cards []*Card
+	bet   uint
+	// True if all cards have been dealed
 	locked bool
 }
 

@@ -3,10 +3,13 @@ package blackjack
 import "fmt"
 
 type Player struct {
-	Balance   uint
+	Balance uint
+	// Nil if not playing in current round
 	Hand      *Hand
 	PlayerNum uint
-	playing   bool
+
+	// True if player has made a choice for the current round
+	playing bool
 }
 
 func CreatePlayer(number uint, balance uint) *Player {
@@ -33,6 +36,7 @@ func (p *Player) PlaceBet(bet uint) error {
 
 	p.Balance -= bet
 	p.Hand = CreateHand(bet)
+	p.playing = true
 
 	return nil
 }
