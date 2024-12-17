@@ -8,7 +8,7 @@ import (
 
 // This test does not do anything because it is just in the String Func
 func TestAllCardStrings(t *testing.T) {
-	forAllSuitFaceCombiniations(func(suit blackjack.Suit, face blackjack.Face) {
+	blackjack.ForAllSuitFaceCombiniations(func(suit blackjack.Suit, face blackjack.Face) {
 		card := blackjack.CreateCard(face, suit)
 		want := face.String() + suit.String()
 

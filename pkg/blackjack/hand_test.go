@@ -54,7 +54,7 @@ func TestHandTotalAllFaces(t *testing.T) {
 	hand := blackjack.CreateHand(0)
 	want := 85
 
-	forAllFaces(func(face blackjack.Face) {
+	blackjack.ForAllFaces(func(face blackjack.Face) {
 		card := blackjack.CreateCard(face, blackjack.Hearts)
 		hand.AddCard(card)
 	})
