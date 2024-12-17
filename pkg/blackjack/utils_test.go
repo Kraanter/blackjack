@@ -1,6 +1,6 @@
 package blackjack_test
 
-import "blackjack/pkg/blackjack"
+import "github.com/kraanter/blackjack/pkg/blackjack"
 
 func forAllFaces(callback func(face blackjack.Face)) {
 	faces := []blackjack.Face{blackjack.Ace, blackjack.Two, blackjack.Three, blackjack.Four, blackjack.Five, blackjack.Six, blackjack.Seven, blackjack.Eight, blackjack.Nine, blackjack.Ten, blackjack.Jack, blackjack.Queen, blackjack.King}
