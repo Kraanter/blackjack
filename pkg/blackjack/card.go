@@ -35,11 +35,45 @@ type Card struct {
 	Suit Suit
 }
 
+func CreateDeckOfCards() []*Card {
+	deck := make([]*Card, 52)
+	i := 0
+	forAllSuitFaceCombiniations(func(suit Suit, face Face) {
+		deck[i] = CreateCard(face, suit)
+		i++
+	})
+
+	return deck
+}
+
 func CreateCard(face Face, suit Suit) *Card {
 	return &Card{
 		Face: face,
 		Suit: suit,
 	}
+}
+
+func forAllFaces(callback func(face Face)) {
+	faces := []Face{Ace, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King}
+
+	for _, face := range faces {
+		callback(face)
+	}
+}
+
+func forAllSuits(callback func(suit Suit)) {
+	suits := []Suit{Hearts, Diamonds, Clubs, Spades}
+	for _, suit := range suits {
+		callback(suit)
+	}
+}
+
+func forAllSuitFaceCombiniations(callback func(suit Suit, face Face)) {
+	forAllSuits(func(suit Suit) {
+		forAllFaces(func(face Face) {
+			callback(suit, face)
+		})
+	})
 }
 
 func (c Card) String() string {
