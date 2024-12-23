@@ -61,14 +61,11 @@ func (b *BlackjackGame) DealInitialCards() {
 // Returns false if game is not in state for player to receive card
 // Returns error if any other reason like player could not be found
 func (game *BlackjackGame) PlayerHit(playerNum PlayerId) (bool, error) {
-	println("hitting", playerNum)
 	if game.GameState != PlayingState {
 		return false, WrongGameStateError
 	}
 
 	if isDealer, num := game.nextPlayersTurn(); isDealer || num != playerNum {
-		println(playerNum, num, isDealer)
-		panic(num)
 		return false, WrongGameStateError
 	}
 
@@ -83,7 +80,6 @@ func (game *BlackjackGame) PlayerHit(playerNum PlayerId) (bool, error) {
 }
 
 func (game *BlackjackGame) PlayerStand(playerNum PlayerId) error {
-	println("standing", playerNum)
 	if isDealer, num := game.nextPlayersTurn(); isDealer || num != playerNum {
 		return WrongGameStateError
 	}
@@ -149,8 +145,8 @@ func (game *BlackjackGame) dealCard(hand *Hand) bool {
 
 func (game *BlackjackGame) finishRound() {
 	game.GameState = PayoutState
-	this := game.payoutBets()
-	fmt.Printf("this: %v\n", this)
+	// TODO: Maybe something with the payoutMap from this function
+	game.payoutBets()
 	game.sendGameUpdate()
 	time.Sleep(game.Settings.DealCardTime)
 
