@@ -20,18 +20,25 @@ func TestGameLoopSingleRound(t *testing.T) {
 
 	// NOTE: Logging for debugging
 	// game.OnGameUpdate = func(game *blackjack.BlackjackGame) {
-	// fmt.Printf("\n---\ngame_update: %v\n\nplayers:\n", game.GameState)
+	// 	fmt.Printf("\n---\ngame_update: %v\n\nplayers:\n", game.GameState)
 	//
-	// for _, player := range players {
-	// 	fmt.Println(player.String())
-	// }
+	// 	for _, player := range players {
+	// 		fmt.Println(player.String())
+	// 	}
 	//
-	// fmt.Println("Dealer: ", game.Dealer.String())
+	// 	fmt.Println("Dealer: ", game.Dealer.String())
 	// }
 
 	game.OnPlayerTurn = func(pi blackjack.PlayerId) {
-		game.PlayerHit(pi)
-		game.PlayerStand(pi)
+		ok, err := game.PlayerHit(pi)
+		if !ok || err != nil {
+			t.Fatalf("Player (%v) decision 'hit' went wrong: ok: %v err: %v", pi, ok, err)
+		}
+		err = game.PlayerStand(pi)
+		if err != nil {
+			t.Fatalf("Player (%v) decision 'stand' went wrong: %v", pi, err)
+		}
+
 	}
 
 	go func() {
@@ -42,7 +49,6 @@ func TestGameLoopSingleRound(t *testing.T) {
 		}
 		err = game.SkipPlayerBet(players[1].PlayerNum)
 		if err != nil {
-			println(err.Error())
 			t.Fatalf("Skipping player bet went wrong: %v", err.Error())
 		}
 	}()
