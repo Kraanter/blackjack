@@ -1,6 +1,5 @@
 
 
-
 Game Loop:
  - Player joins with a certain balance
  - Player bets a certain amount
@@ -28,3 +27,23 @@ Game Loop:
 	 	- Player gets their bet back
 	 - If the player has a total higher than the dealer ()
 	 	- Player gets double their bet
+
+NEEDS TESTS: 
+ - Game State logic
+ - Player hit/stand
+ - Ending of game
+ - Dealer turns
+ - Starting new games
+ - Players leaving
+
+
+To-Do:
+ - Blackjack detection after dealing cards (Player & Dealer)
+ 	- Including payouts
+ - Splitting hands
+ - Database integration
+ 	- Database interface for playing along an ongoing game in the DB
+	- SQLite implementation
+ - REST API
+ 	- WebSocket for messages to the server
+	- SSE for updates in game state
