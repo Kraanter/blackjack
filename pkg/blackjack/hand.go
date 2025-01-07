@@ -42,7 +42,7 @@ func (hand *Hand) Total() int {
 }
 
 func (hand *Hand) AddCard(card *Card) bool {
-	if hand == nil || hand.isLocked() {
+	if hand == nil || hand.IsLocked() {
 		return false
 	}
 
@@ -57,7 +57,7 @@ func (hand *Hand) lock() {
 	hand.locked = true
 }
 
-func (hand *Hand) isLocked() bool {
+func (hand *Hand) IsLocked() bool {
 	if hand == nil {
 		return false
 	}
@@ -80,5 +80,5 @@ func (hand *Hand) String() string {
 		cards = append(cards, "-")
 	}
 
-	return strings.Join(cards, "  ") + fmt.Sprintf(" total: %v lock: %v", hand.Total(), hand.isLocked())
+	return strings.Join(cards, "  ") + fmt.Sprintf(" total: %v lock: %v", hand.Total(), hand.IsLocked())
 }
