@@ -6,16 +6,16 @@ import (
 )
 
 type Hand struct {
-	cards []*Card
-	bet   uint
+	Cards []*Card
+	Bet   uint
 	// True if all cards have been dealed
 	locked bool
 }
 
 func CreateHand(bet uint) *Hand {
 	return &Hand{
-		cards: make([]*Card, 0),
-		bet:   bet,
+		Cards: make([]*Card, 0),
+		Bet:   bet,
 	}
 }
 
@@ -26,7 +26,7 @@ func (hand *Hand) Total() int {
 	}
 
 	aceCount := 0
-	for _, card := range hand.cards {
+	for _, card := range hand.Cards {
 		if card.Face == Ace {
 			aceCount++
 		}
@@ -46,7 +46,7 @@ func (hand *Hand) AddCard(card *Card) bool {
 		return false
 	}
 
-	hand.cards = append(hand.cards, card)
+	hand.Cards = append(hand.Cards, card)
 	return true
 }
 
@@ -69,7 +69,7 @@ func (hand *Hand) String() string {
 	cards := make([]string, 0)
 
 	if hand != nil {
-		for _, card := range hand.cards {
+		for _, card := range hand.Cards {
 			cards = append(cards, card.String())
 		}
 	} else {

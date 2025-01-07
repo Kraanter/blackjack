@@ -188,3 +188,7 @@ func (game *BlackjackGame) payoutBets() map[PlayerId]uint {
 
 	return payoutMap
 }
+
+func (game *BlackjackGame) GetPlayerCount() uint {
+	return game.playerCount
+}
