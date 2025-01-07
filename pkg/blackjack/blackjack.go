@@ -175,6 +175,7 @@ func (game *BlackjackGame) payoutBets() map[PlayerId]uint {
 		playerTotal := player.Hand.Total()
 		if player.Hand == nil || !player.Hand.IsLocked() {
 			player.Hand = nil
+			player.playing = false
 			continue
 		}
 
