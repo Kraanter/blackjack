@@ -176,9 +176,9 @@ func (game *BlackjackGame) payoutBets() map[PlayerId]uint {
 		if playerBust := playerTotal > 21; playerBust {
 			winnings = 0
 		} else if isDraw := !dealerBust && playerTotal == dealerTotal; isDraw {
-			winnings = player.Hand.bet
+			winnings = player.Hand.Bet
 		} else if isWin := dealerBust || playerTotal > dealerTotal; isWin {
-			winnings = 2 * player.Hand.bet
+			winnings = 2 * player.Hand.Bet
 		}
 
 		player.Balance += winnings
