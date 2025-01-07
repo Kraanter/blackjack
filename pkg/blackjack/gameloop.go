@@ -114,7 +114,7 @@ func (game *BlackjackGame) DealerTurn() {
 }
 
 func shouldDealerDrawCard(hand *Hand) bool {
-	if hand.isLocked() || hand == nil {
+	if hand.IsLocked() || hand == nil {
 		return false
 	}
 
