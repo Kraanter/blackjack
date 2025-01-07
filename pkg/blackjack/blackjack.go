@@ -88,13 +88,13 @@ func (game *BlackjackGame) sendGameUpdate() {
 		}
 	}
 	if game.OnGameUpdate != nil {
-		game.OnGameUpdate(game)
+		go game.OnGameUpdate(game)
 	}
 }
 
 func (game *BlackjackGame) sendPlayerTurn(playerId PlayerId) {
 	if game.OnPlayerTurn != nil {
-		game.OnPlayerTurn(playerId)
+		go game.OnPlayerTurn(playerId)
 	}
 }
 
