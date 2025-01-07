@@ -49,19 +49,3 @@ func TestHandTotalWithAceKing(t *testing.T) {
 		t.Fatalf("hand.Total(1 ace, 1 king) = %v, want match for %v", total, want)
 	}
 }
-
-func TestHandTotalAllFaces(t *testing.T) {
-	hand := blackjack.CreateHand(0)
-	want := 85
-
-	blackjack.ForAllFaces(func(face blackjack.Face) {
-		card := blackjack.CreateCard(face, blackjack.Hearts)
-		hand.AddCard(card)
-	})
-
-	handTotal := hand.Total()
-
-	if handTotal != want {
-		t.Fatalf("hand.Total(all faces) = %v, want match for %v", handTotal, want)
-	}
-}

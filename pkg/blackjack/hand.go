@@ -62,7 +62,7 @@ func (hand *Hand) IsLocked() bool {
 		return false
 	}
 
-	if !hand.locked && hand.Total() > 21 {
+	if !hand.locked && hand.Total() >= 21 {
 		hand.lock()
 	}
 

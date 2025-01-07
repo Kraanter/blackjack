@@ -142,7 +142,6 @@ func (game *BlackjackGame) dealCard(hand *Hand) bool {
 
 func (game *BlackjackGame) finishRound() {
 	game.GameState = PayoutState
-	// TODO: Maybe something with the payoutMap from this function
 	game.sendGameUpdate()
 	time.Sleep(game.Settings.TimeBetweenRounds)
 

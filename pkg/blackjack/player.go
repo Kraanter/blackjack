@@ -57,6 +57,11 @@ func (p *Player) stand() {
 	p.Hand.lock()
 }
 
+func (p *Player) reset() {
+	p.playing = false
+	p.Hand = nil
+}
+
 func (p *Player) String() string {
 	return fmt.Sprintf("PlayerNr: %v | Balance: €%v | Hand: %v", p.PlayerNum, p.Balance, p.Hand.String())
 }

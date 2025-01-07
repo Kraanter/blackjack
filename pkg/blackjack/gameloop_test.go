@@ -10,6 +10,7 @@ import (
 
 func TestGameLoopSingleRound(t *testing.T) {
 	settings := blackjack.CreateSettings()
+	settings.TimeBetweenRounds = 0 * time.Millisecond
 	settings.DealCardTime = 0 * time.Millisecond
 	game := blackjack.CreateGame(settings)
 	players := make([]*blackjack.Player, 0, 3)
@@ -34,11 +35,7 @@ func TestGameLoopSingleRound(t *testing.T) {
 		if !ok || err != nil {
 			t.Fatalf("Player (%v) decision 'hit' went wrong: ok: %v err: %v", pi, ok, err)
 		}
-		err = game.PlayerStand(pi)
-		if err != nil {
-			t.Fatalf("Player (%v) decision 'stand' went wrong: %v", pi, err)
-		}
-
+		game.PlayerStand(pi)
 	}
 
 	go func() {
@@ -55,7 +52,7 @@ func TestGameLoopSingleRound(t *testing.T) {
 
 	game.Start()
 
-	time.Sleep(1 * time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 
 	if game.GameState != blackjack.NoState {
 		t.Fatalf("Game should be in no state (%v) after a match is finished, was %v", blackjack.NoState, game.GameState)

@@ -9,6 +9,7 @@ import (
 
 func main() {
 	game := blackjack.CreateGame(blackjack.CreateSettings())
+	game.Settings.TimeBetweenRounds = 100 * time.Millisecond
 	players := make([]*blackjack.Player, 0, 3)
 
 	players = append(players, game.AddPlayerWithBalance(10))
@@ -42,7 +43,7 @@ func main() {
 	game.Start()
 
 	for game.GameState != blackjack.NoState {
+		println("Waiting")
 		time.Sleep(1 * time.Second)
 	}
-	time.Sleep(1 * time.Second)
 }

@@ -174,9 +174,8 @@ func (game *BlackjackGame) payoutBets() map[PlayerId]uint {
 	payoutMap := make(map[PlayerId]uint)
 	for playerId, player := range game.playerMap {
 		playerTotal := player.Hand.Total()
+		defer player.reset()
 		if player.Hand == nil || !player.Hand.IsLocked() {
-			player.Hand = nil
-			player.playing = false
 			continue
 		}
 
@@ -191,7 +190,6 @@ func (game *BlackjackGame) payoutBets() map[PlayerId]uint {
 
 		player.Balance += winnings
 		payoutMap[playerId] += winnings
-		player.Hand = nil
 	}
 
 	return payoutMap
