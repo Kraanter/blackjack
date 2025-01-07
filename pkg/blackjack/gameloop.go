@@ -34,7 +34,7 @@ func (b *BlackjackGame) Start() {
 	b.sendGameUpdate()
 
 	if isDealer, playerNum := b.nextPlayersTurn(); !isDealer {
-		b.OnPlayerTurn(playerNum)
+		b.sendPlayerTurn(playerNum)
 	}
 }
 
@@ -91,9 +91,7 @@ func (game *BlackjackGame) PlayerStand(playerNum PlayerId) error {
 	player.stand()
 	game.sendGameUpdate()
 	if isDealer, nextNum := game.nextPlayersTurn(); !isDealer {
-		if game.OnPlayerTurn != nil {
-			game.OnPlayerTurn(nextNum)
-		}
+		game.sendPlayerTurn(nextNum)
 	}
 
 	return nil

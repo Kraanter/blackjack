@@ -92,6 +92,12 @@ func (game *BlackjackGame) sendGameUpdate() {
 	}
 }
 
+func (game *BlackjackGame) sendPlayerTurn(playerId PlayerId) {
+	if game.OnPlayerTurn != nil {
+		game.OnPlayerTurn(playerId)
+	}
+}
+
 var PlayerNotFoundError error = fmt.Errorf("Could not find player")
 
 func (game *BlackjackGame) RemovePlayer(playerNum PlayerId) (PlayerId, error) {
