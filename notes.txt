@@ -1,4 +1,5 @@
 
+## Amazing
 
 Game Loop:
  - Player joins with a certain balance
