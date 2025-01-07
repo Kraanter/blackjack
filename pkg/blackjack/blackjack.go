@@ -156,6 +156,7 @@ func (b *BlackjackGame) nextPlayersTurn() (isDealersTurn bool, turnPlayerId Play
 }
 
 func (game *BlackjackGame) reset() {
+	// TODO: Maybe something with the payoutMap from this function
 	game.payoutBets()
 
 	game.Dealer = nil
