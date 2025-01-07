@@ -115,7 +115,7 @@ func (face Face) toValue() int {
 func (suit Suit) String() string {
 	switch suit {
 	case Hearts:
-		return ""
+		return "♥"
 	case Diamonds:
 		return "◆"
 	case Clubs:
