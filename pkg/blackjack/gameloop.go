@@ -145,7 +145,7 @@ func (game *BlackjackGame) finishRound() {
 	// TODO: Maybe something with the payoutMap from this function
 	game.payoutBets()
 	game.sendGameUpdate()
-	time.Sleep(game.Settings.DealCardTime)
+	time.Sleep(game.Settings.TimeBetweenRounds)
 
 	game.reset()
 }
