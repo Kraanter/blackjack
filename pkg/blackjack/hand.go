@@ -42,7 +42,7 @@ func (hand *Hand) Total() int {
 }
 
 func (hand *Hand) AddCard(card *Card) bool {
-	if hand == nil || hand.locked {
+	if hand == nil || hand.isLocked() {
 		return false
 	}
 
@@ -60,6 +60,10 @@ func (hand *Hand) lock() {
 func (hand *Hand) isLocked() bool {
 	if hand == nil {
 		return false
+	}
+
+	if !hand.locked && hand.Total() > 21 {
+		hand.lock()
 	}
 
 	return hand.locked

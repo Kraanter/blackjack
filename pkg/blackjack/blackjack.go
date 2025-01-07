@@ -140,7 +140,7 @@ func (b *BlackjackGame) nextPlayersTurn() (isDealersTurn bool, turnPlayerId Play
 		if player.Hand == nil {
 			continue
 		}
-		if player.Hand.locked {
+		if player.Hand.isLocked() {
 			continue
 		}
 		players = append(players, k)
@@ -164,7 +164,7 @@ func (game *BlackjackGame) reset() {
 }
 
 func (game *BlackjackGame) payoutBets() map[PlayerId]uint {
-	if game.GameState != PayoutState || game.Dealer == nil || !game.Dealer.locked {
+	if game.GameState != PayoutState || game.Dealer == nil || !game.Dealer.isLocked() {
 		return nil
 	}
 
@@ -173,7 +173,7 @@ func (game *BlackjackGame) payoutBets() map[PlayerId]uint {
 	payoutMap := make(map[PlayerId]uint)
 	for playerId, player := range game.playerMap {
 		playerTotal := player.Hand.Total()
-		if player.Hand == nil || !player.Hand.locked {
+		if player.Hand == nil || !player.Hand.isLocked() {
 			player.Hand = nil
 			continue
 		}

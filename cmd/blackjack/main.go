@@ -24,10 +24,10 @@ func main() {
 
 		fmt.Println("Dealer: ", game.Dealer.String())
 	}
-	// game.OnPlayerTurn = func(pi blackjack.PlayerId) {
-	// 	game.PlayerHit(pi)
-	// 	game.PlayerStand(pi)
-	// }
+	game.OnPlayerTurn = func(pi blackjack.PlayerId) {
+		game.PlayerHit(pi)
+		game.PlayerStand(pi)
+	}
 
 	go func() {
 		time.Sleep(10 * time.Millisecond)
