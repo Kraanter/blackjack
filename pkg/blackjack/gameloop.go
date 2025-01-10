@@ -32,10 +32,6 @@ func (b *BlackjackGame) Start() {
 	b.DealInitialCards()
 	b.GameState = PlayingState
 	b.sendGameUpdate()
-
-	if isDealer, playerNum := b.nextPlayersTurn(); !isDealer {
-		b.sendPlayerTurn(playerNum)
-	}
 }
 
 func (b *BlackjackGame) DealInitialCards() {

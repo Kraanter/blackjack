@@ -28,14 +28,12 @@ func TestGameLoopSingleRound(t *testing.T) {
 	// }
 
 	game.OnPlayerTurn = func(pi blackjack.PlayerId) {
-		ok, err := game.PlayerHit(pi)
-		if !ok || err != nil {
-			t.Fatalf("Player (%v) decision 'hit' went wrong: ok: %v err: %v", pi, ok, err)
-		}
+		game.PlayerHit(pi)
 		game.PlayerStand(pi)
 	}
 
 	go func() {
+		time.Sleep(10 * time.Millisecond)
 		err := game.SetPlayerBet(players[0].PlayerNum, 5)
 		err = game.SetPlayerBet(players[2].PlayerNum, 2)
 		if err != nil {

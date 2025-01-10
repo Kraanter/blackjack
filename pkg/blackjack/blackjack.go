@@ -3,6 +3,7 @@ package blackjack
 import (
 	"fmt"
 	"slices"
+	"strconv"
 )
 
 type PlayerId = uint
@@ -195,4 +196,21 @@ func (game *BlackjackGame) payoutBets() map[PlayerId]uint {
 
 func (game *BlackjackGame) GetPlayerCount() uint {
 	return uint(len(game.playerMap))
+}
+
+func (game *BlackjackGame) String() string {
+	dealerTurn, nextPlayer := game.nextPlayersTurn()
+	var nextString string
+	if dealerTurn {
+		nextString = "dealer"
+	} else {
+		nextString = strconv.Itoa(int(nextPlayer))
+	}
+
+	playerStrings := ""
+	for _, v := range game.playerMap {
+		playerStrings += "  " + v.String() + "\n"
+	}
+
+	return fmt.Sprintf("GameState: %v Playercount: %v NextPlayer: %v\nDealer: %v\nHands:\n%v", game.GameState, game.GetPlayerCount(), nextString, game.Dealer.String(), playerStrings)
 }
