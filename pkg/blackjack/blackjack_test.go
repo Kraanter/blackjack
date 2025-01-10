@@ -7,7 +7,7 @@ import (
 )
 
 func TestBlackJackAddPlayerIncrementCount(t *testing.T) {
-	game := blackjack.CreateGame(nil)
+	game := blackjack.CreateGame()
 	game.AddPlayerWithBalance(0)
 	game.AddPlayerWithBalance(0)
 	game.AddPlayerWithBalance(0)
@@ -23,7 +23,7 @@ func TestBlackJackAddPlayerIncrementCount(t *testing.T) {
 }
 
 func TestBlackJackRemovePlayerRemovesPlayer(t *testing.T) {
-	game := blackjack.CreateGame(nil)
+	game := blackjack.CreateGame()
 	want := uint(10)
 	game.AddPlayerWithBalance(0)
 	secondPlayer := game.AddPlayerWithBalance(want)
@@ -44,7 +44,7 @@ func TestBlackJackRemovePlayerRemovesPlayer(t *testing.T) {
 }
 
 func TestBlackJackGetNonExistantPlayerReturnError(t *testing.T) {
-	game := blackjack.CreateGame(nil)
+	game := blackjack.CreateGame()
 
 	_, ok := game.GetPlayer(1)
 	if ok {

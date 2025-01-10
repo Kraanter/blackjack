@@ -90,9 +90,6 @@ func (game *BlackjackGame) PlayerStand(playerNum PlayerId) error {
 
 	player.stand()
 	game.sendGameUpdate()
-	if isDealer, nextNum := game.nextPlayersTurn(); !isDealer {
-		game.sendPlayerTurn(nextNum)
-	}
 
 	return nil
 }
@@ -107,7 +104,6 @@ func (game *BlackjackGame) DealerTurn() {
 	}
 
 	game.Dealer.lock()
-	time.Sleep(game.Settings.DealCardTime)
 	game.sendGameUpdate()
 
 	game.finishRound()
@@ -135,7 +131,6 @@ func (game *BlackjackGame) dealCard(hand *Hand) bool {
 	ok := hand.AddCard(card)
 
 	game.sendGameUpdate()
-	time.Sleep(game.Settings.DealCardTime)
 
 	return ok
 }
@@ -143,7 +138,5 @@ func (game *BlackjackGame) dealCard(hand *Hand) bool {
 func (game *BlackjackGame) finishRound() {
 	game.GameState = PayoutState
 	game.sendGameUpdate()
-	time.Sleep(game.Settings.TimeBetweenRounds)
-
 	game.reset()
 }

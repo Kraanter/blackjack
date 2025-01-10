@@ -1,17 +1,15 @@
 package manager
 
-import "github.com/kraanter/blackjack/pkg/blackjack"
+import ()
 
 type Settings struct {
-	MinPlayerCount    uint
-	IdLength          uint
-	BlackjackSettings blackjack.Settings
+	MinPlayerCount uint
+	IdLength       uint
 }
 
 func createSettings() *Settings {
 	return &Settings{
-		MinPlayerCount:    3,
-		IdLength:          3,
-		BlackjackSettings: *blackjack.CreateSettings(),
+		MinPlayerCount: 3,
+		IdLength:       3,
 	}
 }

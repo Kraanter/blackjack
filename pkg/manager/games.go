@@ -40,7 +40,7 @@ func (m *Manager) GetGameWithId(id *GameId) (*blackjack.BlackjackGame, error) {
 }
 
 func (m *Manager) createNewGame() *blackjack.BlackjackGame {
-	newGame := blackjack.CreateGame(&m.settings.BlackjackSettings)
+	newGame := blackjack.CreateGame()
 	for {
 		gameId := CreateRandomGameId(m.settings.IdLength)
 

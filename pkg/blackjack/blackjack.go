@@ -11,25 +11,19 @@ type BlackjackGame struct {
 	Dealer      *Hand
 	playerMap   map[PlayerId]*Player
 	playerCount PlayerId
+	currentTurn PlayerId
 	shoe        Shoe
 	GameState   GameState
-
-	Settings *Settings
 
 	OnPlayerTurn func(PlayerId)
 	OnGameUpdate func(*BlackjackGame)
 }
 
-func CreateGame(settings *Settings) *BlackjackGame {
-	if settings == nil {
-		settings = CreateSettings()
-	}
-
+func CreateGame() *BlackjackGame {
 	return &BlackjackGame{
 		Dealer:    CreateHand(0),
 		playerMap: make(map[PlayerId]*Player, 0),
 		shoe:      *CreateShoe(1),
-		Settings:  settings,
 	}
 }
 
@@ -81,14 +75,18 @@ func (game *BlackjackGame) SkipPlayerBet(playerId PlayerId) error {
 }
 
 func (game *BlackjackGame) sendGameUpdate() {
+	if game.OnGameUpdate != nil {
+		game.OnGameUpdate(game)
+	}
+
 	if game.GameState == PlayingState {
-		if dealer, _ := game.nextPlayersTurn(); dealer {
+		dealer, nextNum := game.nextPlayersTurn()
+		if dealer {
 			game.GameState = DealerState
 			go game.DealerTurn()
+		} else if nextNum != game.currentTurn {
+			game.sendPlayerTurn(nextNum)
 		}
-	}
-	if game.OnGameUpdate != nil {
-		go game.OnGameUpdate(game)
 	}
 }
 

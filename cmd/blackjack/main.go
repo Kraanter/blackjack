@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/kraanter/blackjack/pkg/blackjack"
 )
 
 func main() {
-	game := blackjack.CreateGame(blackjack.CreateSettings())
-	game.Settings.TimeBetweenRounds = 100 * time.Millisecond
+	game := blackjack.CreateGame()
+	var printMutex sync.Mutex
 	players := make([]*blackjack.Player, 0, 3)
 
 	players = append(players, game.AddPlayerWithBalance(10))
@@ -17,7 +18,9 @@ func main() {
 	players = append(players, game.AddPlayerWithBalance(10))
 
 	game.OnGameUpdate = func(game *blackjack.BlackjackGame) {
-		fmt.Printf("\n---\ngame_update: %v\n\nplayers:", game.GameState)
+		printMutex.Lock()
+		defer printMutex.Unlock()
+		fmt.Printf("\n---\ngame_update: %v\n\nplayers: \n", game.GameState)
 
 		for _, player := range players {
 			fmt.Println(player.String())
@@ -43,7 +46,7 @@ func main() {
 	game.Start()
 
 	for game.GameState != blackjack.NoState {
-		println("Waiting")
-		time.Sleep(1 * time.Second)
 	}
+	printMutex.Lock()
+	printMutex.Unlock()
 }

@@ -9,10 +9,7 @@ import (
 )
 
 func TestGameLoopSingleRound(t *testing.T) {
-	settings := blackjack.CreateSettings()
-	settings.TimeBetweenRounds = 0 * time.Millisecond
-	settings.DealCardTime = 0 * time.Millisecond
-	game := blackjack.CreateGame(settings)
+	game := blackjack.CreateGame()
 	players := make([]*blackjack.Player, 0, 3)
 
 	players = append(players, game.AddPlayerWithBalance(10))
