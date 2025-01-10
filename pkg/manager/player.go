@@ -7,19 +7,22 @@ import (
 )
 
 type ManagedPlayer struct {
-	Player *blackjack.Player
-	GameId GameId
-	Ctx    context.Context
+	Player     *blackjack.Player
+	GameId     GameId
+	Ctx        context.Context
+	cancelFunc context.CancelFunc
 
 	Game *blackjack.BlackjackGame
 }
 
 func createPlayer(ctx context.Context, game *blackjack.BlackjackGame, gameId GameId, player *blackjack.Player) *ManagedPlayer {
+	playerContext, cancel := context.WithCancel(ctx)
 	return &ManagedPlayer{
-		Player: player,
-		Game:   game,
-		GameId: gameId,
-		Ctx:    ctx,
+		Player:     player,
+		Game:       game,
+		GameId:     gameId,
+		Ctx:        playerContext,
+		cancelFunc: cancel,
 	}
 }
 
@@ -43,6 +46,12 @@ func (p *ManagedPlayer) SkipBet() error {
 }
 
 func (p *ManagedPlayer) Leave() (balance uint, err error) {
+	defer p.cancelFunc()
+	defer func() {
+		p.Game = nil
+		p.GameId = GameId(0)
+		p.Player = nil
+	}()
 	return p.Game.RemovePlayer(p.Player.PlayerNum)
 }
 
@@ -54,7 +63,18 @@ func (p *Manager) JoinGame(ctx context.Context, balance uint, gameId GameId) *Ma
 
 	player := game.AddPlayerWithBalance(balance)
 
-	return createPlayer(ctx, game, gameId, player)
+	manPlayer := createPlayer(ctx, game, gameId, player)
+	go func() {
+		<-manPlayer.Ctx.Done()
+
+		manPlayer.Leave()
+
+		if game.GetPlayerCount() == 0 {
+			p.removeGame(gameId)
+		}
+	}()
+
+	return manPlayer
 }
 
 func (p *ManagedPlayer) String() string {

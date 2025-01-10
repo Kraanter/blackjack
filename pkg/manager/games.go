@@ -67,3 +67,17 @@ func (m *Manager) addGameWithID(id GameId, game *blackjack.BlackjackGame) bool {
 
 	return true
 }
+
+func (m *Manager) removeGame(id GameId) bool {
+	game, err := m.GetGameWithId(id)
+	if err != nil {
+		return false
+	}
+
+	if game.GetPlayerCount() != 0 {
+		return false
+	}
+
+	delete(m.gameMap, id)
+	return true
+}

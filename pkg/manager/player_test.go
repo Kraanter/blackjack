@@ -9,6 +9,32 @@ import (
 	"github.com/kraanter/blackjack/pkg/manager"
 )
 
+func TestPlayerContextDoneRemovesPlayerAndGameIfEmpty(t *testing.T) {
+	man := manager.CreateManager(nil)
+	playerContext, cancel := context.WithCancel(context.Background())
+	player := man.JoinRandomGame(playerContext, 10)
+
+	want := uint(1)
+	gameCount := man.GetGameCount()
+	if gameCount != want {
+		t.Fatalf("GetGameCount() = %v, want gamecount to be %v", gameCount, want)
+	}
+
+	cancel()
+	time.Sleep(10 * time.Millisecond)
+	gameCount = man.GetGameCount()
+	want = 0
+	if gameCount != want {
+		t.Fatalf("GetGameCount() = %v, want gamecount to be %v because of cancelled context", gameCount, want)
+	}
+	if player.Game != nil {
+		t.Fatalf("ManagedPlayer should not be connected to any game because context is gone")
+	}
+	if player.Player != nil {
+		t.Fatalf("ManagedPlayer should not be connected to any blackjack player because context is gone")
+	}
+}
+
 func TestManagedPlayerCanPlayFullGame(t *testing.T) {
 	man := manager.CreateManager(nil)
 	player := man.JoinRandomGame(context.Background(), 10)
