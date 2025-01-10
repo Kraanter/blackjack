@@ -50,7 +50,6 @@ func (p *Player) Destroy() uint {
 	p.playing = false
 	balance := p.Balance
 	p.Balance = 0
-	p.Hand.locked = false
 
 	return balance
 }
