@@ -44,11 +44,13 @@ func (p *Player) PlaceBet(bet uint) error {
 }
 
 func (p *Player) Destroy() uint {
+	p.reset()
 	p.Hand = nil
 	p.PlayerNum = 0
 	p.playing = false
 	balance := p.Balance
 	p.Balance = 0
+	p.Hand.locked = false
 
 	return balance
 }
