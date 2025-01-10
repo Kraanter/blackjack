@@ -7,7 +7,7 @@ type Settings struct {
 	IdLength       uint
 }
 
-func createSettings() *Settings {
+func CreateSettings() *Settings {
 	return &Settings{
 		MinPlayerCount: 3,
 		IdLength:       3,

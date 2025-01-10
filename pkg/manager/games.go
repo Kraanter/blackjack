@@ -6,16 +6,17 @@ import (
 	"github.com/kraanter/blackjack/pkg/blackjack"
 )
 
-func (m *Manager) GetJoinableGame() *blackjack.BlackjackGame {
+// Returns ID 0 if no game is found and game pointer will be nil
+func (m *Manager) GetJoinableGame() (GameId, *blackjack.BlackjackGame) {
 	// Join a random game
 	for k, v := range m.gameMap {
-		if v.GetPlayerCount() < m.settings.MinPlayerCount {
-			game, err := m.GetGameWithId(&k)
+		if v.GetPlayerCount() < m.Settings.MinPlayerCount {
+			game, err := m.GetGameWithId(k)
 			if err != nil {
-				return nil
+				return 0, nil
 			}
 
-			return game
+			return k, game
 		}
 	}
 
@@ -24,12 +25,8 @@ func (m *Manager) GetJoinableGame() *blackjack.BlackjackGame {
 
 var GameNotFoundError = fmt.Errorf("Could not find Game")
 
-func (m *Manager) GetGameWithId(id *GameId) (*blackjack.BlackjackGame, error) {
-	if id == nil {
-		return nil, GameNotFoundError
-	}
-
-	game, ok := m.gameMap[*id]
+func (m *Manager) GetGameWithId(id GameId) (*blackjack.BlackjackGame, error) {
+	game, ok := m.gameMap[id]
 
 	if !ok {
 		return nil, GameNotFoundError
@@ -39,13 +36,13 @@ func (m *Manager) GetGameWithId(id *GameId) (*blackjack.BlackjackGame, error) {
 
 }
 
-func (m *Manager) createNewGame() *blackjack.BlackjackGame {
+func (m *Manager) createNewGame() (GameId, *blackjack.BlackjackGame) {
 	newGame := blackjack.CreateGame()
 	for {
-		gameId := CreateRandomGameId(m.settings.IdLength)
+		gameId := CreateRandomGameId(m.Settings.IdLength)
 
 		if m.addGameWithID(gameId, newGame) {
-			return newGame
+			return gameId, newGame
 		}
 	}
 }

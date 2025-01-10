@@ -6,17 +6,17 @@ import (
 
 type Manager struct {
 	gameMap  map[GameId]*blackjack.BlackjackGame
-	settings *Settings
+	Settings *Settings
 }
 
 func CreateManager(settings *Settings) *Manager {
 	if settings == nil {
-		settings = createSettings()
+		settings = CreateSettings()
 	}
 
 	return &Manager{
 		gameMap:  make(map[GameId]*blackjack.BlackjackGame),
-		settings: settings,
+		Settings: settings,
 	}
 }
 
