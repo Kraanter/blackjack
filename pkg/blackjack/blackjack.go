@@ -9,12 +9,13 @@ import (
 type PlayerId = uint
 
 type BlackjackGame struct {
-	Dealer      *Hand
-	playerMap   map[PlayerId]*Player
+	Dealer    *Hand                `json:"dealer"`
+	PlayerMap map[PlayerId]*Player `json:"players"`
+	GameState GameState            `json:"gameState"`
+
 	playerCount PlayerId
-	currentTurn PlayerId
+	CurrentTurn PlayerId
 	shoe        Shoe
-	GameState   GameState
 
 	OnPlayerTurn func(PlayerId)
 	OnGameUpdate func(*BlackjackGame)
@@ -23,7 +24,7 @@ type BlackjackGame struct {
 func CreateGame() *BlackjackGame {
 	return &BlackjackGame{
 		Dealer:    CreateHand(0),
-		playerMap: make(map[PlayerId]*Player, 0),
+		PlayerMap: make(map[PlayerId]*Player, 0),
 		shoe:      *CreateShoe(1),
 	}
 }
@@ -31,7 +32,7 @@ func CreateGame() *BlackjackGame {
 func (game *BlackjackGame) AddPlayerWithBalance(balance PlayerId) *Player {
 	game.playerCount++
 	newPlayer := CreatePlayer(game.playerCount, balance)
-	game.playerMap[game.playerCount] = newPlayer
+	game.PlayerMap[game.playerCount] = newPlayer
 
 	game.sendGameUpdate()
 
@@ -85,7 +86,7 @@ func (game *BlackjackGame) sendGameUpdate() {
 		if dealer {
 			game.GameState = DealerState
 			go game.DealerTurn()
-		} else if nextNum != game.currentTurn {
+		} else if nextNum != game.CurrentTurn {
 			game.sendPlayerTurn(nextNum)
 		}
 	}
@@ -100,12 +101,12 @@ func (game *BlackjackGame) sendPlayerTurn(playerId PlayerId) {
 var PlayerNotFoundError error = fmt.Errorf("Could not find player")
 
 func (game *BlackjackGame) RemovePlayer(playerNum PlayerId) (PlayerId, error) {
-	playerToDelete, ok := game.playerMap[playerNum]
+	playerToDelete, ok := game.PlayerMap[playerNum]
 	if !ok {
 		return 0, PlayerNotFoundError
 	}
 
-	delete(game.playerMap, playerNum)
+	delete(game.PlayerMap, playerNum)
 	playersBalance := playerToDelete.Destroy()
 
 	game.sendGameUpdate()
@@ -114,7 +115,7 @@ func (game *BlackjackGame) RemovePlayer(playerNum PlayerId) (PlayerId, error) {
 }
 
 func (game *BlackjackGame) GetPlayer(playerNum PlayerId) (*Player, bool) {
-	player, ok := game.playerMap[playerNum]
+	player, ok := game.PlayerMap[playerNum]
 
 	return player, ok
 }
@@ -122,7 +123,7 @@ func (game *BlackjackGame) GetPlayer(playerNum PlayerId) (*Player, bool) {
 // Get list of all people that still need to bet
 func (b *BlackjackGame) GetPlayersWihoutBets() []PlayerId {
 	peopleArr := make([]PlayerId, 0)
-	for k, v := range b.playerMap {
+	for k, v := range b.PlayerMap {
 		if v.Hand == nil && v.playing == false {
 			peopleArr = append(peopleArr, k)
 		}
@@ -134,8 +135,8 @@ func (b *BlackjackGame) GetPlayersWihoutBets() []PlayerId {
 // Returns true if dealers turn is next
 // Returns false, playerId of the player that is next
 func (b *BlackjackGame) nextPlayersTurn() (isDealersTurn bool, turnPlayerId PlayerId) {
-	players := make([]PlayerId, 0, len(b.playerMap))
-	for k, player := range b.playerMap {
+	players := make([]PlayerId, 0, len(b.PlayerMap))
+	for k, player := range b.PlayerMap {
 		if player.Hand == nil {
 			continue
 		}
@@ -172,7 +173,7 @@ func (game *BlackjackGame) payoutBets() map[PlayerId]uint {
 	dealerBust := dealerTotal > 21
 	dealerBlackjack := isBlackjack(game.Dealer)
 	payoutMap := make(map[PlayerId]uint)
-	for playerId, player := range game.playerMap {
+	for playerId, player := range game.PlayerMap {
 		playerTotal := player.Hand.Total()
 		playerBust := playerTotal > 21
 		playerBlackjack := isBlackjack(player.Hand)
@@ -209,7 +210,7 @@ func isBlackjack(hand *Hand) bool {
 }
 
 func (game *BlackjackGame) GetPlayerCount() uint {
-	return uint(len(game.playerMap))
+	return uint(len(game.PlayerMap))
 }
 
 func (game *BlackjackGame) String() string {
@@ -222,7 +223,7 @@ func (game *BlackjackGame) String() string {
 	}
 
 	playerStrings := ""
-	for _, v := range game.playerMap {
+	for _, v := range game.PlayerMap {
 		playerStrings += "  " + v.String() + "\n"
 	}
 

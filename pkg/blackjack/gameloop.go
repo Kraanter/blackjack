@@ -42,7 +42,7 @@ func (b *BlackjackGame) DealInitialCards() {
 	b.Dealer = CreateHand(0)
 
 	for i := 0; i < 2; i++ {
-		for _, player := range b.playerMap {
+		for _, player := range b.PlayerMap {
 			if player.Hand != nil {
 				b.dealCard(player.Hand)
 			}

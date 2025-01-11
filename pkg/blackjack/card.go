@@ -29,8 +29,8 @@ const (
 )
 
 type Card struct {
-	Face Face
-	Suit Suit
+	Face Face `json:"face"`
+	Suit Suit `json:"suit"`
 }
 
 func CreateDeckOfCards() []*Card {

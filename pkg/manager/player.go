@@ -7,9 +7,9 @@ import (
 )
 
 type ManagedPlayer struct {
-	Player     *blackjack.Player
-	GameId     GameId
-	Ctx        context.Context
+	Player     *blackjack.Player `json:"-"`
+	GameId     GameId            `json:"-"`
+	Ctx        context.Context   `json:"-"`
 	cancelFunc context.CancelFunc
 
 	Game *blackjack.BlackjackGame
