@@ -1,7 +1,5 @@
+# Game loop
 
-## Amazing
-
-Game Loop:
  - Player joins with a certain balance
  - Player bets a certain amount
  - Player receives a hand if they have bet something
@@ -9,7 +7,7 @@ Game Loop:
 	 - All players receive a card turn for turn (including the dealer)
 	 - Until all players have 2 cards (including the dealer (one closed card))
 	 - All hands are checked for blackjack
-	 	- If someone has blackjack, winnings are paid
+	 	- If someone has blackjack, winnings are paid (the payout is 3-to-2, this means if the bet is 10 the payout is 15 + the orignal 10)
 	 - For all players:
 		- Player gets to choose if they want to hit
 			- If player chooses to hit
@@ -26,10 +24,11 @@ Game Loop:
 	 	- Player loses
 	 - If the player has a total equal to the dealer
 	 	- Player gets their bet back
-	 - If the player has a total higher than the dealer ()
+	 - If the player has a total higher than the dealer
 	 	- Player gets double their bet
 
-NEEDS TESTS: 
+ # Testing
+
  - Game State logic
  - Player hit/stand
  - Ending of game
@@ -37,8 +36,8 @@ NEEDS TESTS:
  - Starting new games
  - Players leaving
 
+# TO-DO
 
-To-Do:
  - Blackjack detection after dealing cards (Player & Dealer)
  	- Including payouts
  - Splitting hands
