@@ -7,12 +7,12 @@ import (
 )
 
 type ManagedPlayer struct {
-	Player     *blackjack.Player `json:"-"`
-	GameId     GameId            `json:"-"`
-	Ctx        context.Context   `json:"-"`
-	cancelFunc context.CancelFunc
+	Player     *blackjack.Player  `json:"-"`
+	GameId     GameId             `json:"-"`
+	Ctx        context.Context    `json:"-"`
+	cancelFunc context.CancelFunc `json:"-"`
 
-	Game *blackjack.BlackjackGame
+	Game *blackjack.BlackjackGame `json:"game"`
 }
 
 func createPlayer(ctx context.Context, game *blackjack.BlackjackGame, gameId GameId, player *blackjack.Player) *ManagedPlayer {

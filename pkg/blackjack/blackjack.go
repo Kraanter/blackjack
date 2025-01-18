@@ -9,16 +9,16 @@ import (
 type PlayerId = uint
 
 type BlackjackGame struct {
-	Dealer    *Hand                `json:"dealer"`
-	PlayerMap map[PlayerId]*Player `json:"players"`
-	GameState GameState            `json:"gameState"`
+	Dealer      *Hand                `json:"dealer"`
+	PlayerMap   map[PlayerId]*Player `json:"players"`
+	GameState   GameState            `json:"gameState"`
+	CurrentTurn PlayerId             `json:"current-turn"`
 
-	playerCount PlayerId
-	CurrentTurn PlayerId
-	shoe        Shoe
+	playerCount PlayerId `json:"player-count"`
+	shoe        Shoe     `json:"shoe"`
 
-	OnPlayerTurn func(PlayerId)
-	OnGameUpdate func(*BlackjackGame)
+	OnPlayerTurn func(PlayerId)       `json:"-"`
+	OnGameUpdate func(*BlackjackGame) `json:"-"`
 }
 
 func CreateGame() *BlackjackGame {

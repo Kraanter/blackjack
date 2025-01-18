@@ -42,7 +42,7 @@ type AuthUser struct {
 	Cookie        UserCookie             `json:"cookie"`
 	Player        *manager.ManagedPlayer `json:"player"`
 	Ctx           context.Context        `json:"-"`
-	cancelContext context.CancelFunc
+	cancelContext context.CancelFunc     `json:"-"`
 }
 
 var UserMap = make(map[UserCookie]*AuthUser)
