@@ -37,6 +37,10 @@ func (p *ManagedPlayer) Stand() error {
 	return p.Game.PlayerStand(p.Player.PlayerNum)
 }
 
+func (p *ManagedPlayer) GetBalance() uint {
+	return p.Player.Balance
+}
+
 func (p *ManagedPlayer) Bet(amount uint) error {
 	return p.Game.SetPlayerBet(p.Player.PlayerNum, amount)
 }
