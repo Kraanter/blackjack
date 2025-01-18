@@ -2,22 +2,25 @@ package routes
 
 import (
 	"net/http"
+
+	"github.com/kraanter/blackjack/pkg/restAPI/middleware"
 )
 
 type ApiRoute struct {
-	Pattern    string
-	Handler    func(http.ResponseWriter, *http.Request)
-	MiddleWare []func(http.ResponseWriter, *http.Request) bool
+	Pattern string
+	Handler http.HandlerFunc
+	noAuth  bool
 }
 
-func (r *ApiRoute) TotalHandler() func(http.ResponseWriter, *http.Request) {
+func (r *ApiRoute) TotalHandler() http.HandlerFunc {
+	isAllowed := middleware.AuthMiddleware(r.noAuth)
 	return func(res http.ResponseWriter, req *http.Request) {
-		for _, v := range r.MiddleWare {
-			if v(res, req) {
-				return
-			}
+		isYes := isAllowed(res, req)
+		println("allowed", isYes)
+		if !isYes {
+			http.Error(res, "Unauthorized: Invalid User", http.StatusUnauthorized)
+		} else {
+			r.Handler(res, req)
 		}
-
-		r.Handler(res, req)
 	}
 }

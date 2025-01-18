@@ -11,19 +11,19 @@ import (
 	"github.com/kraanter/blackjack/pkg/restAPI/middleware"
 )
 
-var ApiRoutes = []ApiRoute{testRoute, authRoute}
+var ApiRoutes = []ApiRoute{joinRoute, authRoute}
 
-var testRoute = ApiRoute{
-	Pattern:    "GET /join",
-	Handler:    joinGameHandler,
-	MiddleWare: []func(http.ResponseWriter, *http.Request) bool{middleware.AuthMiddleware(true)},
+var joinRoute = ApiRoute{
+	Pattern: "GET /join",
+	Handler: joinGameHandler,
+	noAuth:  true,
 }
 
 var managerSettings = manager.CreateSettings()
 var gameManager = manager.CreateManager(managerSettings)
 
 func joinGameHandler(res http.ResponseWriter, req *http.Request) {
-	gameIdStr := req.PathValue("gameId")
+	gameIdStr := req.URL.Query().Get("code")
 	gameId, err := strconv.Atoi(gameIdStr)
 	var player *manager.ManagedPlayer
 	if err != nil {
@@ -56,9 +56,8 @@ func joinGameHandler(res http.ResponseWriter, req *http.Request) {
 }
 
 var authRoute = ApiRoute{
-	Pattern:    "GET /auth",
-	Handler:    authHandler,
-	MiddleWare: []func(http.ResponseWriter, *http.Request) bool{middleware.AuthMiddleware(false)},
+	Pattern: "GET /auth",
+	Handler: authHandler,
 }
 
 func authHandler(res http.ResponseWriter, req *http.Request) {

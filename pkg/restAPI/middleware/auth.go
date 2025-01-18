@@ -15,10 +15,9 @@ type ContextPlayer string
 const ContextUserKey ContextPlayer = "user"
 const CookiePlayerIdKey = "PlayerId"
 
-func AuthMiddleware(noAuth bool) func(res http.ResponseWriter, req *http.Request) bool {
+func AuthMiddleware(noAuth bool) (isAllowed func(res http.ResponseWriter, req *http.Request) bool) {
 	return func(res http.ResponseWriter, req *http.Request) bool {
 		value := GetUserFromReq(req)
-		fmt.Printf("mid value %v\n", value)
 		if (value == nil) != noAuth {
 			if !noAuth {
 				c := &http.Cookie{
@@ -31,10 +30,9 @@ func AuthMiddleware(noAuth bool) func(res http.ResponseWriter, req *http.Request
 				}
 				http.SetCookie(res, c)
 			}
-			http.Error(res, "Unauthorized: Invalid User", http.StatusUnauthorized)
-			return true
+			return false
 		}
-		return false
+		return true
 	}
 }
 
