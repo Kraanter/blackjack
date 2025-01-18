@@ -2,8 +2,6 @@ package blackjack
 
 import (
 	"strconv"
-
-	"github.com/kraanter/blackjack/pkg/assert"
 )
 
 type Suit int
@@ -124,6 +122,5 @@ func (suit Suit) String() string {
 		return "♠"
 	}
 
-	assert.Never("Can't convert suit (%v) to a string", suit)
-	return ""
+	return "♫"
 }

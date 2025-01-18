@@ -170,21 +170,28 @@ func (game *BlackjackGame) payoutBets() map[PlayerId]uint {
 
 	dealerTotal := game.Dealer.Total()
 	dealerBust := dealerTotal > 21
+	dealerBlackjack := isBlackjack(game.Dealer)
 	payoutMap := make(map[PlayerId]uint)
 	for playerId, player := range game.playerMap {
 		playerTotal := player.Hand.Total()
+		playerBust := playerTotal > 21
+		playerBlackjack := isBlackjack(player.Hand)
 		defer player.reset()
 		if player.Hand == nil || !player.Hand.IsLocked() {
 			continue
 		}
 
 		winnings := uint(0)
-		if playerBust := playerTotal > 21; playerBust {
-			winnings = 0
-		} else if isDraw := !dealerBust && playerTotal == dealerTotal; isDraw {
+		switch {
+		case dealerBlackjack && playerBlackjack, playerTotal == dealerTotal:
 			winnings = player.Hand.Bet
-		} else if isWin := dealerBust || playerTotal > dealerTotal; isWin {
+		case playerBlackjack && !dealerBlackjack:
+			// Blackjack pays 2 to 3
+			winnings = 5 * (player.Hand.Bet / 2)
+		case dealerBust && !playerBust, (!playerBust && playerTotal > dealerTotal):
 			winnings = 2 * player.Hand.Bet
+		case playerBust:
+			winnings = 0
 		}
 
 		player.Balance += winnings
@@ -192,6 +199,13 @@ func (game *BlackjackGame) payoutBets() map[PlayerId]uint {
 	}
 
 	return payoutMap
+}
+
+func isBlackjack(hand *Hand) bool {
+	if hand == nil {
+		return false
+	}
+	return hand.Total() == 21 && len(hand.Cards) == 2
 }
 
 func (game *BlackjackGame) GetPlayerCount() uint {
