@@ -2,16 +2,13 @@ package routes
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/kraanter/blackjack/pkg/manager"
-	"github.com/kraanter/blackjack/pkg/restAPI/middleware"
+	"github.com/kraanter/blackjack/pkg/restAPI/users"
 )
-
-var ApiRoutes = []ApiRoute{joinRoute, authRoute}
 
 var joinRoute = ApiRoute{
 	Pattern: "GET /join",
@@ -37,12 +34,12 @@ func joinGameHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	fmt.Printf("joined %v\n", player)
+	fmt.Printf("Player has joined: %v\n", player)
 
-	userCookieValue := middleware.RegisterUser(player, context.Background())
+	userCookieValue := users.RegisterUser(player, context.Background())
 
 	userCookie := http.Cookie{
-		Name:     middleware.CookiePlayerIdKey,
+		Name:     users.CookiePlayerIdKey,
 		Value:    userCookieValue,
 		Secure:   true,
 		HttpOnly: true,
@@ -52,26 +49,5 @@ func joinGameHandler(res http.ResponseWriter, req *http.Request) {
 
 	http.SetCookie(res, &userCookie)
 
-	res.Write([]byte("hi"))
-}
-
-var authRoute = ApiRoute{
-	Pattern: "GET /auth",
-	Handler: authHandler,
-}
-
-func authHandler(res http.ResponseWriter, req *http.Request) {
-	user := middleware.GetUserFromReq(req)
-	if user == nil {
-		res.Write([]byte("No user found"))
-		return
-	}
-
-	data, err := json.Marshal(user)
-
-	println(data)
-	if err != nil {
-		println(err.Error())
-	}
-	res.Write(data)
+	res.Write([]byte("Welcome"))
 }

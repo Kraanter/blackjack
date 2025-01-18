@@ -8,7 +8,7 @@ import (
 
 func Start() error {
 	for _, route := range routes.ApiRoutes {
-		http.HandleFunc(route.Pattern, route.TotalHandler())
+		http.HandleFunc(route.Pattern, route.GetRouteHandler())
 	}
 
 	return http.ListenAndServe(":42069", nil)
