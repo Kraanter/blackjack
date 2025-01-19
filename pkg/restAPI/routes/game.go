@@ -10,7 +10,7 @@ import (
 	"github.com/kraanter/blackjack/pkg/restAPI/users"
 )
 
-var joinRoute = createNoAuthRoute("GET /join", joinGameHandler)
+var joinRoute = createNoAuthRoute("POST /join", joinGameHandler)
 
 var managerSettings = manager.CreateSettings()
 var gameManager = manager.CreateManager(managerSettings)
