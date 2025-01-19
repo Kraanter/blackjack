@@ -30,26 +30,34 @@ func structToString(s interface{}) []byte {
 }
 
 func writeStructToResponse(res http.ResponseWriter, s interface{}, code int) {
-	str := structToString(s)
+	var str []byte
 
-	res.Write(str)
+	if s == nil {
+		str = []byte("{}")
+	} else {
+		str = structToString(s)
+	}
+
 	res.Header().Set("Content-Type", "application/json")
 
 	res.WriteHeader(code)
+	res.Write(str)
 }
 
 type errorResponse struct {
-	reason string
-	code   int
+	Reason string `json:"reason"`
+	Code   int    `json:"code"`
 }
 
-func handleError(res http.ResponseWriter, err error, code int) {
+func handleError(res http.ResponseWriter, errmsg string, code int) {
 	resBody := errorResponse{
-		code:   code,
-		reason: err.Error(),
+		Code:   code,
+		Reason: errmsg,
 	}
 
-	structToString(resBody)
+	writeStructToResponse(res, resBody, code)
+}
 
-	res.WriteHeader(code)
+func handleUnauthenticated(res http.ResponseWriter) {
+	handleError(res, "User is not authenticated", http.StatusUnauthorized)
 }

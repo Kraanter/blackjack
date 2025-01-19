@@ -10,11 +10,7 @@ import (
 	"github.com/kraanter/blackjack/pkg/restAPI/users"
 )
 
-var joinRoute = ApiRoute{
-	Pattern: "GET /join",
-	Handler: joinGameHandler,
-	noAuth:  true,
-}
+var joinRoute = createNoAuthRoute("GET /join", joinGameHandler)
 
 var managerSettings = manager.CreateSettings()
 var gameManager = manager.CreateManager(managerSettings)
@@ -30,7 +26,7 @@ func joinGameHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	if player == nil {
-		http.Error(res, "Could not connect to game", http.StatusUnprocessableEntity)
+		handleError(res, "Could not join game", http.StatusUnprocessableEntity)
 		return
 	}
 
@@ -49,5 +45,5 @@ func joinGameHandler(res http.ResponseWriter, req *http.Request) {
 
 	http.SetCookie(res, &userCookie)
 
-	res.Write([]byte("Welcome"))
+	writeStructToResponse(res, player, http.StatusCreated)
 }

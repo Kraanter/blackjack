@@ -14,8 +14,8 @@ type BlackjackGame struct {
 	GameState   GameState            `json:"gameState"`
 	CurrentTurn PlayerId             `json:"current-turn"`
 
-	playerCount PlayerId `json:"player-count"`
-	shoe        Shoe     `json:"shoe"`
+	playerCount PlayerId
+	shoe        Shoe
 
 	OnPlayerTurn func(PlayerId)       `json:"-"`
 	OnGameUpdate func(*BlackjackGame) `json:"-"`

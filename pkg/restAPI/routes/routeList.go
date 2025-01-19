@@ -2,7 +2,4 @@ package routes
 
 import ()
 
-var ApiRoutes = []ApiRoute{
-	joinRoute,
-	authRoute,
-}
+var ApiRoutes = []ApiRoute{}

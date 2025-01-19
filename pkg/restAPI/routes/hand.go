@@ -6,9 +6,17 @@ import (
 	"github.com/kraanter/blackjack/pkg/restAPI/users"
 )
 
-var buyHandRoute = ApiRoute{
-	Pattern: "PUT /hand",
-	Handler: buyHandHandler,
+var getHandRoute = createRoute("GET /hand", getHandHandler)
+var buyHandRoute = createRoute("POST /hand", buyHandHandler)
+
+func getHandHandler(res http.ResponseWriter, req *http.Request) {
+	user := users.GetUserFromReq(req)
+	if user == nil {
+		handleUnauthenticated(res)
+		return
+	}
+
+	writeStructToResponse(res, user.Player.Player.Hand, http.StatusOK)
 }
 
 type buyHandBody struct {
@@ -18,19 +26,22 @@ type buyHandBody struct {
 func buyHandHandler(res http.ResponseWriter, req *http.Request) {
 	user := users.GetUserFromReq(req)
 	if user == nil {
-		res.Write([]byte("No user found"))
+		handleUnauthenticated(res)
 		return
 	}
 
 	var reqBody buyHandBody
 	err := bodyToStruct(req.Body, &reqBody)
 	if err != nil {
-		handleError(res, err, http.StatusInternalServerError)
+		handleError(res, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	err = user.Player.Bet(reqBody.BetAmount)
 	if err != nil {
-		handleError(res, err, http.StatusPaymentRequired)
+		handleError(res, err.Error(), http.StatusPaymentRequired)
 		return
 	}
+
+	writeStructToResponse(res, user.Player.Player.Hand, http.StatusCreated)
 }
