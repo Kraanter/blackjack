@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/kraanter/blackjack/pkg/blackjack"
 )
@@ -33,17 +32,14 @@ func main() {
 		game.PlayerStand(pi)
 	}
 
-	go func() {
-		time.Sleep(10 * time.Millisecond)
-		err := game.SetPlayerBet(players[0].PlayerNum, 5)
-		err = game.SkipPlayerBet(players[1].PlayerNum)
-		err = game.SetPlayerBet(players[2].PlayerNum, 2)
-		if err != nil {
-			println(err.Error())
-		}
-	}()
-
 	game.Start()
+
+	err := game.SetPlayerBet(players[0].PlayerNum, 5)
+	err = game.SkipPlayerBet(players[1].PlayerNum)
+	err = game.SetPlayerBet(players[2].PlayerNum, 2)
+	if err != nil {
+		println(err.Error())
+	}
 
 	for game.GameState != blackjack.NoState {
 	}

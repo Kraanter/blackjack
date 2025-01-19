@@ -57,23 +57,16 @@ func TestManagedPlayerCanPlayFullGame(t *testing.T) {
 		player.Stand()
 	}
 
-	go func() {
-		time.Sleep(10 * time.Millisecond)
-		err := player.Bet(10)
-		if err != nil {
-			println("Error while betting", err.Error())
-		}
-	}()
-
 	player.Game.Start()
-
-	time.Sleep(10 * time.Millisecond)
-
-	if player.Game.GameState != blackjack.NoState {
-		t.Fatalf("Game should be in no state (%v) after a match is finished, was %v", blackjack.NoState, player.Game.GameState)
+	err := player.Bet(10)
+	if err != nil {
+		t.Fatalf("Error while betting: %v", err)
 	}
 
-	_, err := player.Leave()
+	for player.Game.GameState != blackjack.NoState {
+	}
+
+	_, err = player.Leave()
 	if err != nil {
 		t.Fatalf("Leaving game after match is done should not return error. Error = %v", err)
 	}

@@ -1,8 +1,6 @@
 package blackjack
 
-import (
-	"time"
-)
+import ()
 
 type GameState = int
 
@@ -19,19 +17,14 @@ func (b *BlackjackGame) Start() {
 	b.GameState = BettingState
 	b.sendGameUpdate()
 
-	collectionChannel := make(chan bool)
 	go func() {
 		for b.GameState == BettingState && len(b.GetPlayersWihoutBets()) > 0 {
-			time.Sleep(100 * time.Millisecond)
 		}
-		collectionChannel <- true
+
+		b.DealInitialCards()
+		b.GameState = PlayingState
+		b.sendGameUpdate()
 	}()
-
-	<-collectionChannel
-
-	b.DealInitialCards()
-	b.GameState = PlayingState
-	b.sendGameUpdate()
 }
 
 func (b *BlackjackGame) DealInitialCards() {
