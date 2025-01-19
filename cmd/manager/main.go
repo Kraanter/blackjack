@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"sync"
 
@@ -11,7 +10,7 @@ import (
 
 func main() {
 	man := manager.CreateManager(nil)
-	player := man.JoinRandomGame(context.Background(), 10)
+	player := man.JoinRandomGame(10)
 	var printMutex sync.Mutex
 
 	player.Game.OnGameUpdate = func(game *blackjack.BlackjackGame) {

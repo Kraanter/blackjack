@@ -1,28 +1,21 @@
 package manager
 
 import (
-	"context"
-
 	"github.com/kraanter/blackjack/pkg/blackjack"
 )
 
 type ManagedPlayer struct {
-	Player     *blackjack.Player `json:"player"`
-	GameId     GameId            `json:"game-id"`
-	Ctx        context.Context   `json:"-"`
-	cancelFunc context.CancelFunc
+	Player *blackjack.Player `json:"player"`
+	GameId GameId            `json:"game-id"`
 
 	Game *blackjack.BlackjackGame `json:"game"`
 }
 
-func createPlayer(ctx context.Context, game *blackjack.BlackjackGame, gameId GameId, player *blackjack.Player) *ManagedPlayer {
-	playerContext, cancel := context.WithCancel(ctx)
+func createPlayer(game *blackjack.BlackjackGame, gameId GameId, player *blackjack.Player) *ManagedPlayer {
 	return &ManagedPlayer{
-		Player:     player,
-		Game:       game,
-		GameId:     gameId,
-		Ctx:        playerContext,
-		cancelFunc: cancel,
+		Player: player,
+		Game:   game,
+		GameId: gameId,
 	}
 }
 
@@ -50,16 +43,16 @@ func (p *ManagedPlayer) SkipBet() error {
 }
 
 func (p *ManagedPlayer) Leave() (balance uint, err error) {
-	defer p.cancelFunc()
 	defer func() {
 		p.Game = nil
 		p.GameId = GameId(0)
 		p.Player = nil
 	}()
+
 	return p.Game.RemovePlayer(p.Player.PlayerNum)
 }
 
-func (p *Manager) JoinGame(ctx context.Context, balance uint, gameId GameId) *ManagedPlayer {
+func (p *Manager) JoinGame(balance uint, gameId GameId) *ManagedPlayer {
 	game, _ := p.GetGameWithId(gameId)
 	if game == nil {
 		return nil
@@ -67,16 +60,7 @@ func (p *Manager) JoinGame(ctx context.Context, balance uint, gameId GameId) *Ma
 
 	player := game.AddPlayerWithBalance(balance)
 
-	manPlayer := createPlayer(ctx, game, gameId, player)
-	go func() {
-		<-manPlayer.Ctx.Done()
-
-		manPlayer.Leave()
-
-		if game.GetPlayerCount() == 0 {
-			p.removeGame(gameId)
-		}
-	}()
+	manPlayer := createPlayer(game, gameId, player)
 
 	return manPlayer
 }

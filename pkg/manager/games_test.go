@@ -33,7 +33,7 @@ func TestManagerGetJoinableGameCreatesNewGameIfAllGamesFull(t *testing.T) {
 	settings.MinPlayerCount = 1
 	manager := manager.CreateManager(settings)
 
-	for _ = range want {
+	for range want {
 		_, game := manager.GetJoinableGame()
 		if game == nil {
 			t.Fatalf("GetJoinableGame() = %v, want pointer to newly created game", game)
@@ -55,7 +55,7 @@ func TestManagerGetsCorrectGameIfGivenGameCode(t *testing.T) {
 	numGames := 9
 
 	games := make([]*blackjack.BlackjackGame, 0)
-	for _ = range numGames {
+	for range numGames {
 		_, game := man.GetJoinableGame()
 		if game == nil {
 			t.Fatalf("GetJoinableGame() = %v, want pointer to newly created game", game)

@@ -7,26 +7,25 @@ import (
 	"strconv"
 
 	"github.com/kraanter/blackjack/pkg/manager"
+	"github.com/kraanter/blackjack/pkg/restAPI/games"
 	"github.com/kraanter/blackjack/pkg/restAPI/users"
 )
 
 var joinRoute = createNoAuthRoute("POST /join", joinGameHandler)
+var leaveRoute = createRoute("DELETE /leave", leaveGameHandler)
 
-var managerSettings = manager.CreateSettings()
-var gameManager = manager.CreateManager(managerSettings)
-
-func joinGameHandler(res http.ResponseWriter, req *http.Request) {
-	gameIdStr := req.URL.Query().Get("code")
+func joinGameHandler(w http.ResponseWriter, r *http.Request) {
+	gameIdStr := r.URL.Query().Get("code")
 	gameId, err := strconv.Atoi(gameIdStr)
 	var player *manager.ManagedPlayer
 	if err != nil {
-		player = gameManager.JoinRandomGame(context.Background(), 100)
+		player = games.GameManager.JoinRandomGame(100)
 	} else {
-		player = gameManager.JoinGame(context.Background(), 100, manager.GameId(gameId))
+		player = games.GameManager.JoinGame(100, manager.GameId(gameId))
 	}
 
 	if player == nil {
-		handleError(res, "Could not join game", http.StatusUnprocessableEntity)
+		handleError(w, "Could not join game", http.StatusUnprocessableEntity)
 		return
 	}
 
@@ -43,7 +42,19 @@ func joinGameHandler(res http.ResponseWriter, req *http.Request) {
 		Path:     "/",
 	}
 
-	http.SetCookie(res, &userCookie)
+	http.SetCookie(w, &userCookie)
 
-	writeStructToResponse(res, player, http.StatusCreated)
+	writeStructToResponse(w, player, http.StatusCreated)
+}
+
+func leaveGameHandler(w http.ResponseWriter, r *http.Request) {
+	user := users.GetUserFromReq(r)
+	if user == nil {
+		handleUnauthenticated(w)
+		return
+	}
+
+	users.RemoveAuthUser(user)
+
+	w.WriteHeader(http.StatusOK)
 }
