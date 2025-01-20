@@ -1,6 +1,6 @@
 package blackjack
 
-import ()
+import "time"
 
 type GameState = int
 
@@ -23,6 +23,11 @@ func (b *BlackjackGame) Start() {
 
 	go func() {
 		for b.GameState == BettingState && len(b.GetPlayersWihoutBets()) > 0 {
+			time.Sleep(100 * time.Millisecond)
+		}
+
+		if len(b.PlayerMap) == 0 {
+			return
 		}
 
 		b.DealInitialCards()

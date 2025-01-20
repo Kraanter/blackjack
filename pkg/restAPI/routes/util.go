@@ -2,6 +2,7 @@ package routes
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 )
@@ -29,7 +30,7 @@ func structToString(s interface{}) []byte {
 	return bodyBytes
 }
 
-func writeStructToResponse(res http.ResponseWriter, s interface{}, code int) {
+func writeStructToWriter(w io.Writer, s interface{}) {
 	var str []byte
 
 	if s == nil {
@@ -38,10 +39,19 @@ func writeStructToResponse(res http.ResponseWriter, s interface{}, code int) {
 		str = structToString(s)
 	}
 
+	w.Write(str)
+}
+
+func writeStructToResponse(res http.ResponseWriter, s interface{}, code int) {
 	res.Header().Set("Content-Type", "application/json")
 
 	res.WriteHeader(code)
-	res.Write(str)
+	writeStructToWriter(res, s)
+}
+
+func sendSSEvent(w http.ResponseWriter, event string, data interface{}) {
+	fmt.Fprintf(w, "id: %s\nevent: %s\ndata: %s\n\n", event, event, structToString(data))
+	w.(http.Flusher).Flush()
 }
 
 type errorResponse struct {

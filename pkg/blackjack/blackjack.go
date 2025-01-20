@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"sync"
 )
 
 type PlayerId = uint
@@ -16,6 +17,7 @@ type BlackjackGame struct {
 
 	playerCount PlayerId
 	shoe        Shoe
+	mutex       sync.Mutex
 
 	OnPlayerTurn func(PlayerId)       `json:"-"`
 	OnGameUpdate func(*BlackjackGame) `json:"-"`
@@ -32,7 +34,10 @@ func CreateGame() *BlackjackGame {
 func (game *BlackjackGame) AddPlayerWithBalance(balance PlayerId) *Player {
 	game.playerCount++
 	newPlayer := CreatePlayer(game.playerCount, balance)
+
+	game.mutex.Lock()
 	game.PlayerMap[game.playerCount] = newPlayer
+	game.mutex.Unlock()
 
 	game.sendGameUpdate()
 
@@ -40,6 +45,10 @@ func (game *BlackjackGame) AddPlayerWithBalance(balance PlayerId) *Player {
 }
 
 func (game *BlackjackGame) SetPlayerBet(playerId PlayerId, betAmount uint) error {
+	if game.GameState == NoState {
+		game.Start()
+	}
+
 	if game.GameState != BettingState {
 		return WrongGameStateError
 	}
@@ -101,12 +110,14 @@ func (game *BlackjackGame) sendPlayerTurn(playerId PlayerId) {
 var PlayerNotFoundError error = fmt.Errorf("Could not find player")
 
 func (game *BlackjackGame) RemovePlayer(playerNum PlayerId) (PlayerId, error) {
+	game.mutex.Lock()
 	playerToDelete, ok := game.PlayerMap[playerNum]
 	if !ok {
 		return 0, PlayerNotFoundError
 	}
 
 	delete(game.PlayerMap, playerNum)
+	game.mutex.Unlock()
 	playersBalance := playerToDelete.Destroy()
 
 	game.sendGameUpdate()
@@ -115,6 +126,8 @@ func (game *BlackjackGame) RemovePlayer(playerNum PlayerId) (PlayerId, error) {
 }
 
 func (game *BlackjackGame) GetPlayer(playerNum PlayerId) (*Player, bool) {
+	game.mutex.Lock()
+	defer game.mutex.Unlock()
 	player, ok := game.PlayerMap[playerNum]
 
 	return player, ok
@@ -123,11 +136,11 @@ func (game *BlackjackGame) GetPlayer(playerNum PlayerId) (*Player, bool) {
 // Get list of all people that still need to bet
 func (b *BlackjackGame) GetPlayersWihoutBets() []PlayerId {
 	peopleArr := make([]PlayerId, 0)
-	for k, v := range b.PlayerMap {
+	b.forEachPlayer(func(k PlayerId, v *Player) {
 		if v.Hand == nil && v.playing == false {
 			peopleArr = append(peopleArr, k)
 		}
-	}
+	})
 
 	return peopleArr
 }
@@ -136,15 +149,15 @@ func (b *BlackjackGame) GetPlayersWihoutBets() []PlayerId {
 // Returns false, playerId of the player that is next
 func (b *BlackjackGame) nextPlayersTurn() (isDealersTurn bool, turnPlayerId PlayerId) {
 	players := make([]PlayerId, 0, len(b.PlayerMap))
-	for k, player := range b.PlayerMap {
+	b.forEachPlayer(func(k PlayerId, player *Player) {
 		if player.Hand == nil {
-			continue
+			return
 		}
 		if player.Hand.IsLocked() {
-			continue
+			return
 		}
 		players = append(players, k)
-	}
+	})
 
 	slices.Sort(players)
 
@@ -173,13 +186,13 @@ func (game *BlackjackGame) payoutBets() map[PlayerId]uint {
 	dealerBust := dealerTotal > 21
 	dealerBlackjack := isBlackjack(game.Dealer)
 	payoutMap := make(map[PlayerId]uint)
-	for playerId, player := range game.PlayerMap {
+	game.forEachPlayer(func(playerId PlayerId, player *Player) {
 		playerTotal := player.Hand.Total()
 		playerBust := playerTotal > 21
 		playerBlackjack := isBlackjack(player.Hand)
 		defer player.reset()
 		if player.Hand == nil || !player.Hand.IsLocked() {
-			continue
+			return
 		}
 
 		winnings := uint(0)
@@ -197,7 +210,7 @@ func (game *BlackjackGame) payoutBets() map[PlayerId]uint {
 
 		player.Balance += winnings
 		payoutMap[playerId] += winnings
-	}
+	})
 
 	return payoutMap
 }
@@ -223,9 +236,18 @@ func (game *BlackjackGame) String() string {
 	}
 
 	playerStrings := ""
-	for _, v := range game.PlayerMap {
+	game.forEachPlayer(func(k PlayerId, v *Player) {
 		playerStrings += "  " + v.String() + "\n"
-	}
+	})
 
 	return fmt.Sprintf("GameState: %v Playercount: %v NextPlayer: %v\nDealer: %v\nHands:\n%v", game.GameState, game.GetPlayerCount(), nextString, game.Dealer.String(), playerStrings)
+}
+
+func (b *BlackjackGame) forEachPlayer(fn func(id PlayerId, player *Player)) {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	for k, v := range b.PlayerMap {
+		fn(k, v)
+	}
 }

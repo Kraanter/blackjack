@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SSE Example</title>
+</head>
+<body>
+    <button onclick="bet()">Bet</button>
+    <button onclick="hit()">Hit</button>
+    <button onclick="stand()">Stand</button>
+    <div id="sse-initial"></div>
+    <div id="sse-data"></div>
+
+    <script>
+	    function bet() {
+		fetch('http://localhost:42069/hand', {method: "POST", body: JSON.stringify({"bet-amount": 10})})
+	    }
+	    function hit() {
+		fetch('http://localhost:42069/hit', {method: "PATCH"})
+	    }
+	    function stand() {
+		fetch('http://localhost:42069/stand', {method: "PATCH"})
+	    }
+
+	    fetch('http://localhost:42069/join', {method: "POST"}).then(() => {
+			const eventSource = new EventSource('http://localhost:42069/gamestate?sse', { withCredentials: false });
+			eventSource.addEventListener("initial", function(event) {
+			    const dataElement = document.getElementById('sse-initial');
+			    dataElement.innerHTML += "initial: " + event.data + '<br>';
+			});
+
+			eventSource.addEventListener("update", function(event) {
+			    const dataElement = document.getElementById('sse-data');
+			    dataElement.innerHTML += event.data + '<br>';
+			});
+
+			eventSource.addEventListener("close", function(event) {
+			    eventSource.close()
+			})
+	})
+    </script>
+</body>
+</html>

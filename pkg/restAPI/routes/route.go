@@ -35,6 +35,10 @@ func createNoAuthRoute(pattern string, handler http.HandlerFunc) *ApiRoute {
 func (r *ApiRoute) GetRouteHandler() http.HandlerFunc {
 	isAllowed := users.AuthMiddleware(r.noAuth)
 	return func(res http.ResponseWriter, req *http.Request) {
+		res.Header().Set("Access-Control-Allow-Origin", "*")
+		res.Header().Set("Access-Control-Expose-Headers", "*")
+		res.Header().Set("Access-Control-Allow-Credentials", "true")
+
 		hasAccess := isAllowed(res, req)
 		if !hasAccess {
 			handleUnauthenticated(res)

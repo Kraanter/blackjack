@@ -3,6 +3,7 @@ package users
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sync"
 	"time"
 
@@ -17,9 +18,12 @@ const ContextUserKey ContextPlayer = "user"
 type UserCookie = string
 
 type AuthUser struct {
-	Cookie        UserCookie             `json:"cookie"`
-	Player        *manager.ManagedPlayer `json:"player"`
-	Ctx           context.Context        `json:"-"`
+	Cookie UserCookie             `json:"cookie"`
+	Player *manager.ManagedPlayer `json:"player"`
+	Ctx    context.Context        `json:"-"`
+
+	writerContext context.Context
+	writerCancel  context.CancelFunc
 	cancelContext context.CancelFunc
 	lastSeen      time.Time
 }
@@ -87,4 +91,28 @@ func createAuthUser(player *manager.ManagedPlayer, ctx context.Context) *AuthUse
 	user := &AuthUser{Cookie: createCookie(), Player: player, cancelContext: cancelFunc, Ctx: ctx, lastSeen: time.Now()}
 	go ensureUserActive(user)
 	return user
+}
+
+type writerContextType string
+
+var writerContextKey = writerContextType("Writer")
+
+func (user *AuthUser) SetUserWriter(writer http.ResponseWriter, requestContext context.Context) {
+	if user.writerCancel != nil {
+		user.writerCancel()
+	}
+
+	valContext, cancel := context.WithCancel(context.WithValue(requestContext, writerContextKey, writer))
+
+	user.writerCancel = cancel
+	user.writerContext = valContext
+}
+
+func (user *AuthUser) WriteContext() context.Context {
+	return user.writerContext
+}
+
+func (user *AuthUser) GetUserWriter() http.ResponseWriter {
+	writer := user.writerContext.Value(writerContextKey).(http.ResponseWriter)
+	return writer
 }

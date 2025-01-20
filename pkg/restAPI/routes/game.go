@@ -2,9 +2,10 @@ package routes
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/kraanter/blackjack/pkg/blackjack"
 	"github.com/kraanter/blackjack/pkg/manager"
@@ -14,6 +15,7 @@ import (
 
 var joinRoute = createNoAuthRoute("POST /join", joinGameHandler)
 var leaveRoute = createRoute("DELETE /leave", leaveGameHandler)
+var gameStateRoute = createRoute("GET /gamestate", gameStateHandler)
 
 func joinGameHandler(w http.ResponseWriter, r *http.Request) {
 	gameIdStr := r.URL.Query().Get("code")
@@ -42,8 +44,6 @@ func joinGameHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &userCookie)
-
-	player.OnGameUpdate = playerUpdateHandler(player)
 	player.Game.Start()
 
 	writeStructToResponse(w, player, http.StatusCreated)
@@ -61,8 +61,58 @@ func leaveGameHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func playerUpdateHandler(player *manager.ManagedPlayer) func(game *blackjack.BlackjackGame) {
+type writeContextKey string
+
+var contextKey = writeContextKey("writer")
+
+func gameStateHandler(w http.ResponseWriter, r *http.Request) {
+	user := users.GetUserFromReq(r)
+	if user == nil {
+		handleUnauthenticated(w)
+		return
+	}
+
+	isSSE := r.URL.Query().Has("sse")
+
+	if !isSSE {
+		writeStructToResponse(w, user.Player.Game, http.StatusOK)
+		return
+	}
+
+	// Set SSE headers
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+
+	// Bind event
+	oldContext := user.WriteContext()
+	user.SetUserWriter(w, r.Context())
+	if oldContext != nil {
+		<-oldContext.Done()
+	}
+	user.Player.OnGameUpdate = playerUpdateHandler(user)
+
+	select {
+	case <-r.Context().Done():
+		user.Player.OnGameUpdate = nil
+	case <-user.WriteContext().Done():
+		sendSSEvent(w, "close", nil)
+	case <-user.Ctx.Done():
+		user.Player.OnGameUpdate = nil
+	}
+}
+
+func playerUpdateHandler(user *users.AuthUser) func(game *blackjack.BlackjackGame) {
+	var mutex sync.Mutex
+
+	go func() {
+		sendSSEvent(user.GetUserWriter(), "initial", user)
+	}()
+
 	return func(game *blackjack.BlackjackGame) {
-		fmt.Printf("%v %v\n", player, game)
+		mutex.Lock()
+		defer mutex.Unlock()
+		sendSSEvent(user.GetUserWriter(), "update", game)
+		time.Sleep(500 * time.Millisecond)
 	}
 }
