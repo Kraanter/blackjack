@@ -38,6 +38,8 @@ func GetUserFromReq(req *http.Request) *AuthUser {
 				continue
 			}
 
+			cookieval.lastSeen = time.Now()
+
 			return cookieval
 		}
 	}
