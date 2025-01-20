@@ -5,10 +5,10 @@ import (
 )
 
 type Player struct {
-	Balance uint
+	Balance uint `json:"balance"`
 	// Nil if not playing in current round
-	Hand      *Hand
-	PlayerNum uint
+	Hand      *Hand `json:"hand"`
+	PlayerNum uint  `json:"playerNum"`
 
 	// True if player has made a choice for the current round
 	playing bool

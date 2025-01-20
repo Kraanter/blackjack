@@ -1,7 +1,6 @@
 package manager
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/kraanter/blackjack/pkg/blackjack"
@@ -24,13 +23,13 @@ func (m *Manager) GetJoinableGame() (GameId, *blackjack.BlackjackGame) {
 	return m.createNewGame()
 }
 
-func (m *Manager) JoinRandomGame(ctx context.Context, balance uint) *ManagedPlayer {
+func (m *Manager) JoinRandomGame(balance uint) *ManagedPlayer {
 	gameId, _ := m.GetJoinableGame()
 	if gameId == 0 {
 		return nil
 	}
 
-	return m.JoinGame(ctx, balance, gameId)
+	return m.JoinGame(balance, gameId)
 }
 
 var GameNotFoundError = fmt.Errorf("Could not find Game")
@@ -68,7 +67,7 @@ func (m *Manager) addGameWithID(id GameId, game *blackjack.BlackjackGame) bool {
 	return true
 }
 
-func (m *Manager) removeGame(id GameId) bool {
+func (m *Manager) RemoveGame(id GameId) bool {
 	game, err := m.GetGameWithId(id)
 	if err != nil {
 		return false

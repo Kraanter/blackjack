@@ -6,8 +6,9 @@ import (
 )
 
 type Hand struct {
-	Cards []*Card
-	Bet   uint
+	Cards []*Card `json:"cards"`
+	Bet   uint    `json:"bet"`
+
 	// True if all cards have been dealed
 	locked bool
 }

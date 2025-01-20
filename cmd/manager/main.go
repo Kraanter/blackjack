@@ -1,10 +1,8 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/kraanter/blackjack/pkg/blackjack"
 	"github.com/kraanter/blackjack/pkg/manager"
@@ -12,7 +10,7 @@ import (
 
 func main() {
 	man := manager.CreateManager(nil)
-	player := man.JoinRandomGame(context.Background(), 10)
+	player := man.JoinRandomGame(10)
 	var printMutex sync.Mutex
 
 	player.Game.OnGameUpdate = func(game *blackjack.BlackjackGame) {
@@ -29,15 +27,13 @@ func main() {
 		player.Stand()
 	}
 
-	go func() {
-		time.Sleep(10 * time.Millisecond)
-		err := player.Bet(10)
-		if err != nil {
-			println("Error while betting", err.Error())
-		}
-	}()
-
 	player.Game.Start()
+
+	err := player.Bet(10)
+	if err != nil {
+		println("Error while betting", err.Error())
+		panic(1)
+	}
 
 	for player.Game.GameState != blackjack.NoState {
 	}

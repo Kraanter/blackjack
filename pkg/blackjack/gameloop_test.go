@@ -32,22 +32,18 @@ func TestGameLoopSingleRound(t *testing.T) {
 		game.PlayerStand(pi)
 	}
 
-	go func() {
-		time.Sleep(10 * time.Millisecond)
-		err := game.SetPlayerBet(players[0].PlayerNum, 5)
-		err = game.SetPlayerBet(players[2].PlayerNum, 2)
-		if err != nil {
-			t.Fatalf("Setting player bets went wrong: %v", err.Error())
-		}
-		err = game.SkipPlayerBet(players[1].PlayerNum)
-		if err != nil {
-			t.Fatalf("Skipping player bet went wrong: %v", err.Error())
-		}
-	}()
-
 	game.Start()
+	err := game.SetPlayerBet(players[0].PlayerNum, 5)
+	err = game.SetPlayerBet(players[2].PlayerNum, 2)
+	if err != nil {
+		t.Fatalf("Setting player bets went wrong: %v", err.Error())
+	}
+	err = game.SkipPlayerBet(players[1].PlayerNum)
+	if err != nil {
+		t.Fatalf("Skipping player bet went wrong: %v", err.Error())
+	}
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(1 * time.Millisecond)
 
 	if game.GameState != blackjack.NoState {
 		t.Fatalf("Game should be in no state (%v) after a match is finished, was %v", blackjack.NoState, game.GameState)
