@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/kraanter/blackjack/pkg/blackjack"
 	"github.com/kraanter/blackjack/pkg/manager"
 	"github.com/kraanter/blackjack/pkg/restAPI/games"
 	"github.com/kraanter/blackjack/pkg/restAPI/users"
@@ -29,8 +30,6 @@ func joinGameHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("Player has joined: %v\n", player)
-
 	userCookieValue := users.RegisterUser(player, context.Background())
 
 	userCookie := http.Cookie{
@@ -43,6 +42,9 @@ func joinGameHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &userCookie)
+
+	player.OnGameUpdate = playerUpdateHandler(player)
+	player.Game.Start()
 
 	writeStructToResponse(w, player, http.StatusCreated)
 }
@@ -57,4 +59,10 @@ func leaveGameHandler(w http.ResponseWriter, r *http.Request) {
 	users.RemoveAuthUser(user)
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func playerUpdateHandler(player *manager.ManagedPlayer) func(game *blackjack.BlackjackGame) {
+	return func(game *blackjack.BlackjackGame) {
+		fmt.Printf("%v %v\n", player, game)
+	}
 }

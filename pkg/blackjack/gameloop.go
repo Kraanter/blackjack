@@ -14,6 +14,10 @@ const (
 )
 
 func (b *BlackjackGame) Start() {
+	if b.GameState != NoState {
+		return
+	}
+
 	b.GameState = BettingState
 	b.sendGameUpdate()
 

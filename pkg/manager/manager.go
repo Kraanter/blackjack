@@ -2,12 +2,10 @@ package manager
 
 import (
 	"time"
-
-	"github.com/kraanter/blackjack/pkg/blackjack"
 )
 
 type Manager struct {
-	gameMap  map[GameId]*blackjack.BlackjackGame
+	gameMap  map[GameId]*ManagedGame
 	Settings *Settings
 }
 
@@ -17,7 +15,7 @@ func CreateManager(settings *Settings) *Manager {
 	}
 
 	manager := &Manager{
-		gameMap:  make(map[GameId]*blackjack.BlackjackGame),
+		gameMap:  make(map[GameId]*ManagedGame),
 		Settings: settings,
 	}
 

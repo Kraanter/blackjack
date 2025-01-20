@@ -9,12 +9,14 @@ type ManagedPlayer struct {
 	GameId GameId            `json:"game-id"`
 
 	Game *blackjack.BlackjackGame `json:"game"`
+
+	OnGameUpdate func(*blackjack.BlackjackGame) `json:"-"`
 }
 
-func createPlayer(game *blackjack.BlackjackGame, gameId GameId, player *blackjack.Player) *ManagedPlayer {
+func createPlayer(game *ManagedGame, gameId GameId, player *blackjack.Player) *ManagedPlayer {
 	return &ManagedPlayer{
 		Player: player,
-		Game:   game,
+		Game:   game.blackjackGame,
 		GameId: gameId,
 	}
 }
@@ -58,9 +60,11 @@ func (p *Manager) JoinGame(balance uint, gameId GameId) *ManagedPlayer {
 		return nil
 	}
 
-	player := game.AddPlayerWithBalance(balance)
+	player := game.blackjackGame.AddPlayerWithBalance(balance)
 
 	manPlayer := createPlayer(game, gameId, player)
+
+	game.Players[manPlayer.Player.PlayerNum] = manPlayer
 
 	return manPlayer
 }

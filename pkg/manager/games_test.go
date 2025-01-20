@@ -3,7 +3,6 @@ package manager_test
 import (
 	"testing"
 
-	"github.com/kraanter/blackjack/pkg/blackjack"
 	"github.com/kraanter/blackjack/pkg/manager"
 )
 
@@ -34,11 +33,10 @@ func TestManagerGetJoinableGameCreatesNewGameIfAllGamesFull(t *testing.T) {
 	manager := manager.CreateManager(settings)
 
 	for range want {
-		_, game := manager.GetJoinableGame()
-		if game == nil {
-			t.Fatalf("GetJoinableGame() = %v, want pointer to newly created game", game)
+		player := manager.JoinRandomGame(0)
+		if player == nil {
+			t.Fatalf("GetJoinableGame() = %v, want pointer to newly created player", player)
 		}
-		game.AddPlayerWithBalance(0)
 	}
 
 	gameCount := manager.GetGameCount()
@@ -54,14 +52,13 @@ func TestManagerGetsCorrectGameIfGivenGameCode(t *testing.T) {
 	man := manager.CreateManager(settings)
 	numGames := 9
 
-	games := make([]*blackjack.BlackjackGame, 0)
+	games := make([]*manager.ManagedPlayer, 0)
 	for range numGames {
-		_, game := man.GetJoinableGame()
-		if game == nil {
-			t.Fatalf("GetJoinableGame() = %v, want pointer to newly created game", game)
+		player := man.JoinRandomGame(0)
+		if player == nil {
+			t.Fatalf("GetJoinableGame() = %v, want pointer to newly created player", player)
 		}
-		game.AddPlayerWithBalance(0)
-		games = append(games, game)
+		games = append(games, player)
 	}
 
 	for i := range numGames {

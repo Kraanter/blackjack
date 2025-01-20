@@ -7,7 +7,7 @@ import (
 )
 
 // Returns ID 0 if no game is found and game pointer will be nil
-func (m *Manager) GetJoinableGame() (GameId, *blackjack.BlackjackGame) {
+func (m *Manager) GetJoinableGame() (GameId, *ManagedGame) {
 	// Join a random game
 	for k, v := range m.gameMap {
 		if v.GetPlayerCount() < m.Settings.MinPlayerCount {
@@ -34,7 +34,7 @@ func (m *Manager) JoinRandomGame(balance uint) *ManagedPlayer {
 
 var GameNotFoundError = fmt.Errorf("Could not find Game")
 
-func (m *Manager) GetGameWithId(id GameId) (*blackjack.BlackjackGame, error) {
+func (m *Manager) GetGameWithId(id GameId) (*ManagedGame, error) {
 	game, ok := m.gameMap[id]
 
 	if !ok {
@@ -45,8 +45,8 @@ func (m *Manager) GetGameWithId(id GameId) (*blackjack.BlackjackGame, error) {
 
 }
 
-func (m *Manager) createNewGame() (GameId, *blackjack.BlackjackGame) {
-	newGame := blackjack.CreateGame()
+func (m *Manager) createNewGame() (GameId, *ManagedGame) {
+	newGame := createManagedGame()
 	for {
 		gameId := CreateRandomGameId(m.Settings.IdLength)
 
@@ -56,7 +56,7 @@ func (m *Manager) createNewGame() (GameId, *blackjack.BlackjackGame) {
 	}
 }
 
-func (m *Manager) addGameWithID(id GameId, game *blackjack.BlackjackGame) bool {
+func (m *Manager) addGameWithID(id GameId, game *ManagedGame) bool {
 	_, ok := m.gameMap[id]
 	if ok {
 		return false
@@ -79,4 +79,14 @@ func (m *Manager) RemoveGame(id GameId) bool {
 
 	delete(m.gameMap, id)
 	return true
+}
+
+func createGameUpdateHandler(manGame *ManagedGame) func(game *blackjack.BlackjackGame) {
+	return func(game *blackjack.BlackjackGame) {
+		for _, player := range manGame.Players {
+			if player.OnGameUpdate != nil {
+				player.OnGameUpdate(game)
+			}
+		}
+	}
 }
