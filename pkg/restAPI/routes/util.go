@@ -51,7 +51,10 @@ func writeStructToResponse(res http.ResponseWriter, s interface{}, code int) {
 
 func sendSSEvent(w http.ResponseWriter, event string, data interface{}) {
 	fmt.Fprintf(w, "id: %s\nevent: %s\ndata: %s\n\n", event, event, structToString(data))
-	w.(http.Flusher).Flush()
+	flusher := w.(http.Flusher)
+	if flusher != nil {
+		flusher.Flush()
+	}
 }
 
 type errorResponse struct {
