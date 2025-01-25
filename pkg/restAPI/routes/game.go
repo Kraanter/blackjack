@@ -2,6 +2,7 @@ package routes
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"sync"
@@ -112,6 +113,7 @@ func playerUpdateHandler(user *users.AuthUser) func(game *blackjack.BlackjackGam
 	return func(game *blackjack.BlackjackGame) {
 		mutex.Lock()
 		defer mutex.Unlock()
+		fmt.Printf("game: %v\n", game)
 		sendSSEvent(user.GetUserWriter(), "update", game)
 		time.Sleep(500 * time.Millisecond)
 	}

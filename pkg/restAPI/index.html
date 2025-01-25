@@ -7,6 +7,9 @@
     <button onclick="bet()">Bet</button>
     <button onclick="hit()">Hit</button>
     <button onclick="stand()">Stand</button>
+    <button onclick="split()">Split</button>
+    <div id="player-cards"></div>
+    <div id="dealer-cards"></div>
     <div id="sse-initial"></div>
     <div id="sse-data"></div>
 
@@ -20,23 +23,59 @@
 	    function stand() {
 		fetch('http://localhost:42069/stand', {method: "PATCH"})
 	    }
+	    function split() {
+		fetch('http://localhost:42069/split', {method: "PATCH"})
+	    }
 
 	    fetch('http://localhost:42069/join', {method: "POST"}).then(() => {
-			const eventSource = new EventSource('http://localhost:42069/gamestate?sse', { withCredentials: false });
-			eventSource.addEventListener("initial", function(event) {
-			    const dataElement = document.getElementById('sse-initial');
-			    dataElement.innerHTML += "initial: " + event.data + '<br>';
-			});
+		const eventSource = new EventSource('http://localhost:42069/gamestate?sse', { withCredentials: false });
+		eventSource.addEventListener("initial", function(event) {
+		    const dataElement = document.getElementById('sse-initial');
+		    dataElement.innerHTML += "initial: " + event.data + '<br>';
+		    const data = JSON.parse(event.data)
+		    console.log("inital",data)
+		    showHands(data.player.game.players[1].hands, 'player-cards')
+		    showHands([data.player.game.dealer], 'dealer-cards')
+		});
 
-			eventSource.addEventListener("update", function(event) {
-			    const dataElement = document.getElementById('sse-data');
-			    dataElement.innerHTML += event.data + '<br>';
-			});
+		eventSource.addEventListener("update", function(event) {
+		    const dataElement = document.getElementById('sse-data');
+		    dataElement.innerHTML += event.data + '<br>';
 
-			eventSource.addEventListener("close", function(event) {
-			    eventSource.close()
-			})
-	})
+		    const data = JSON.parse(event.data)
+		    console.log('update', data)
+		    showHands(data.players[1].hands, 'player-cards')
+		    showHands([data.dealer], 'dealer-cards')
+		});
+
+		eventSource.addEventListener("close", function(event) {
+		    eventSource.close()
+		})
+	    })
+
+	    function showHands(hands, elementId) {
+		const cardsElement = document.getElementById(elementId);
+		cardsElement.innerHTML = ""
+		console.log("hands", hands)
+		for(hand of hands) {
+		    console.log("hand", hand)
+		    let handStr = "";
+		    for (card of hand.cards) {
+			console.log("card", card)
+			const cardEnum = card.face
+			if (cardEnum < 0 || cardEnum > 12) return
+
+			let cardToAdd;
+			if (cardEnum == 0) cardToAdd = "A";
+			else if (cardEnum < 10) cardToAdd = (cardEnum+1).toString()
+			else cardToAdd = "10"
+
+			handStr += cardToAdd + " "
+		    }
+		    console.log("handStr", handStr)
+		    cardsElement.innerHTML += handStr + '<br>';
+		}
+	    }
     </script>
 </body>
 </html>
