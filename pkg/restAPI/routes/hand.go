@@ -16,7 +16,7 @@ func getHandHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	writeStructToResponse(res, user.Player.Player.Hand, http.StatusOK)
+	writeStructToResponse(res, user.Player.Player.Hands, http.StatusOK)
 }
 
 type buyHandBody struct {
@@ -43,5 +43,5 @@ func buyHandHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	writeStructToResponse(res, user.Player.Player.Hand, http.StatusCreated)
+	writeStructToResponse(res, user.Player.Player.Hands, http.StatusCreated)
 }
