@@ -11,8 +11,10 @@ func playGameWithCards(playerCards []*Card, dealerCards []*Card) (*BlackjackGame
 	game.GameState = BettingState
 	game.SetPlayerBet(player.PlayerNum, 10)
 
-	player.Hand.Cards = playerCards
-	player.Hand.lock()
+	hand := player.GetActiveHand()
+	hand.Cards = playerCards
+	hand.lock()
+
 	game.Dealer.Cards = dealerCards
 	game.Dealer.lock()
 

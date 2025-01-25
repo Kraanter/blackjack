@@ -123,7 +123,7 @@ func (game *BlackjackGame) GetPlayer(playerNum PlayerId) (*Player, bool) {
 func (b *BlackjackGame) GetPlayersWihoutBets() []PlayerId {
 	peopleArr := make([]PlayerId, 0)
 	for k, v := range b.playerMap {
-		if v.Hand == nil && v.playing == false {
+		if len(v.Hands) == 0 && v.playing == false {
 			peopleArr = append(peopleArr, k)
 		}
 	}
@@ -136,10 +136,10 @@ func (b *BlackjackGame) GetPlayersWihoutBets() []PlayerId {
 func (b *BlackjackGame) nextPlayersTurn() (isDealersTurn bool, turnPlayerId PlayerId) {
 	players := make([]PlayerId, 0, len(b.playerMap))
 	for k, player := range b.playerMap {
-		if player.Hand == nil {
+		if len(player.Hands) == 0 {
 			continue
 		}
-		if player.Hand.IsLocked() {
+		if player.GetActiveHand() == nil {
 			continue
 		}
 		players = append(players, k)
@@ -173,29 +173,31 @@ func (game *BlackjackGame) payoutBets() map[PlayerId]uint {
 	dealerBlackjack := isBlackjack(game.Dealer)
 	payoutMap := make(map[PlayerId]uint)
 	for playerId, player := range game.playerMap {
-		playerTotal := player.Hand.Total()
-		playerBust := playerTotal > 21
-		playerBlackjack := isBlackjack(player.Hand)
-		defer player.reset()
-		if player.Hand == nil || !player.Hand.IsLocked() {
-			continue
-		}
+		for _, hand := range player.Hands {
+			playerTotal := hand.Total()
+			playerBust := playerTotal > 21
+			playerBlackjack := isBlackjack(hand)
+			defer player.reset()
+			if !hand.IsLocked() {
+				continue
+			}
 
-		winnings := uint(0)
-		switch {
-		case dealerBlackjack && playerBlackjack, playerTotal == dealerTotal:
-			winnings = player.Hand.Bet
-		case playerBlackjack && !dealerBlackjack:
-			// Blackjack pays 2 to 3
-			winnings = 5 * (player.Hand.Bet / 2)
-		case dealerBust && !playerBust, (!playerBust && playerTotal > dealerTotal):
-			winnings = 2 * player.Hand.Bet
-		case playerBust:
-			winnings = 0
-		}
+			winnings := uint(0)
+			switch {
+			case dealerBlackjack && playerBlackjack, playerTotal == dealerTotal:
+				winnings = hand.Bet
+			case playerBlackjack && !dealerBlackjack:
+				// Blackjack pays 2 to 3
+				winnings = 5 * (hand.Bet / 2)
+			case dealerBust && !playerBust, (!playerBust && playerTotal > dealerTotal):
+				winnings = 2 * hand.Bet
+			case playerBust:
+				winnings = 0
+			}
 
-		player.Balance += winnings
-		payoutMap[playerId] += winnings
+			player.Balance += winnings
+			payoutMap[playerId] += winnings
+		}
 	}
 
 	return payoutMap

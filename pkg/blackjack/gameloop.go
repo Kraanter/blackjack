@@ -43,8 +43,8 @@ func (b *BlackjackGame) DealInitialCards() {
 
 	for i := 0; i < 2; i++ {
 		for _, player := range b.playerMap {
-			if player.Hand != nil {
-				b.dealCard(player.Hand)
+			if hand := player.GetActiveHand(); hand != nil {
+				b.dealCard(hand)
 			}
 		}
 
@@ -69,7 +69,11 @@ func (game *BlackjackGame) PlayerHit(playerNum PlayerId) (bool, error) {
 		return false, PlayerNotFoundError
 	}
 
-	ok = game.dealCard(player.Hand)
+	hand := player.GetActiveHand()
+	if hand == nil {
+		return false, nil
+	}
+	ok = game.dealCard(hand)
 
 	return ok, nil
 }
