@@ -94,6 +94,44 @@ func (game *BlackjackGame) PlayerStand(playerNum PlayerId) error {
 	return nil
 }
 
+func (game *BlackjackGame) PlayerSplit(playerNum PlayerId) error {
+	if isDealer, num := game.nextPlayersTurn(); isDealer || num != playerNum {
+		return WrongGameStateError
+	}
+
+	player, ok := game.GetPlayer(playerNum)
+	if !ok {
+		return PlayerNotFoundError
+	}
+
+	hand := player.GetActiveHand()
+	if hand == nil || hand.locked {
+		return WrongGameStateError
+	}
+
+	canSplit := len(player.GetActiveHand().Cards) == 2 && hand.Cards[0].Face == hand.Cards[1].Face && player.Balance >= hand.Bet
+	if !canSplit {
+		return WrongGameStateError
+	}
+
+	secondCard := hand.Cards[1]
+	newHand := CreateHand(hand.Bet)
+	player.Balance -= hand.Bet
+
+	newHand.Cards = append(newHand.Cards, secondCard)
+	hand.Cards = hand.Cards[:1]
+	player.Hands = append(player.Hands, newHand)
+
+	game.sendGameUpdate()
+
+	game.dealCard(hand)
+	game.dealCard(newHand)
+
+	game.sendGameUpdate()
+
+	return nil
+}
+
 func (game *BlackjackGame) DealerTurn() {
 	if game.GameState != DealerState {
 		return
