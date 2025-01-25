@@ -211,7 +211,7 @@ func (game *BlackjackGame) payoutBets() map[PlayerId]uint {
 			player.Balance += winnings
 			payoutMap[playerId] += winnings
 		}
-	}
+	})
 
 	return payoutMap
 }
