@@ -27,6 +27,8 @@
 		fetch('http://localhost:42069/split', {method: "PATCH"})
 	    }
 
+	    var playerId;
+
 	    fetch('http://localhost:42069/join', {method: "POST"}).then(() => {
 		const eventSource = new EventSource('http://localhost:42069/gamestate?sse', { withCredentials: false });
 		eventSource.addEventListener("initial", function(event) {
@@ -34,7 +36,8 @@
 		    dataElement.innerHTML += "initial: " + event.data + '<br>';
 		    const data = JSON.parse(event.data)
 		    console.log("inital",data)
-		    showHands(data.player.game.players[1].hands, 'player-cards')
+		    playerId = data.player.player.playerNum
+		    showHands(data.player.game.players[playerId].hands, 'player-cards')
 		    showHands([data.player.game.dealer], 'dealer-cards')
 		});
 
@@ -43,8 +46,8 @@
 		    dataElement.innerHTML += event.data + '<br>';
 
 		    const data = JSON.parse(event.data)
-		    console.log('update', data)
-		    showHands(data.players[1].hands, 'player-cards')
+		    console.log('update', data, playerId)
+		    showHands(data.players[playerId].hands, 'player-cards')
 		    showHands([data.dealer], 'dealer-cards')
 		});
 
