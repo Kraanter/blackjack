@@ -151,10 +151,10 @@ func (b *BlackjackGame) nextPlayersTurn() (isDealersTurn bool, turnPlayerId Play
 	players := make([]PlayerId, 0, len(b.PlayerMap))
 	b.forEachPlayer(func(k PlayerId, player *Player) {
 		if len(player.Hands) == 0 {
-			continue
+			return
 		}
 		if player.GetActiveHand() == nil {
-			continue
+			return
 		}
 		players = append(players, k)
 	})
