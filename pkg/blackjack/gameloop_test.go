@@ -51,8 +51,7 @@ func TestGameLoopSingleRound(t *testing.T) {
 	if game.Dealer != nil {
 		t.Fatalf("Dealer should not have a hand at the end of the game")
 	}
-	if slices.ContainsFunc(players, func(player *blackjack.Player) bool { return player.Hand != nil }) {
+	if slices.ContainsFunc(players, func(player *blackjack.Player) bool { return len(player.Hands) != 0 }) {
 		t.Fatalf("All players should not have a hand at the end of the game")
 	}
-
 }

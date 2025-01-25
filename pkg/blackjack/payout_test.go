@@ -11,8 +11,38 @@ func playGameWithCards(playerCards []*Card, dealerCards []*Card) (*BlackjackGame
 	game.GameState = BettingState
 	game.SetPlayerBet(player.PlayerNum, 10)
 
-	player.Hand.Cards = playerCards
-	player.Hand.lock()
+	hand := player.GetActiveHand()
+	hand.Cards = playerCards
+	hand.lock()
+
+	game.Dealer.Cards = dealerCards
+	game.Dealer.lock()
+
+	game.GameState = PlayingState
+	game.sendGameUpdate()
+
+	game.finishRound()
+
+	return game, player
+}
+
+func playGameWithSplit(playerCards []*Card, splitCards []*Card, dealerCards []*Card) (*BlackjackGame, *Player) {
+	game := CreateGame()
+	player := game.AddPlayerWithBalance(10)
+
+	game.GameState = BettingState
+	game.SetPlayerBet(player.PlayerNum, 5)
+
+	hand := player.GetActiveHand()
+	hand.Cards = playerCards
+	game.GameState = PlayingState
+
+	game.PlayerSplit(player.PlayerNum)
+	player.GetActiveHand().Cards[1] = splitCards[0]
+	game.PlayerStand(player.PlayerNum)
+	player.GetActiveHand().Cards[1] = splitCards[1]
+	game.PlayerStand(player.PlayerNum)
+
 	game.Dealer.Cards = dealerCards
 	game.Dealer.lock()
 
@@ -98,6 +128,24 @@ func TestPayoutWithNoBlackjackDealerWinning(t *testing.T) {
 	dealerCards := []*Card{CreateCard(Ten, Hearts), CreateCard(Ten, Hearts)}
 
 	game, player := playGameWithCards(playerCards, dealerCards)
+
+	if game.GameState != NoState {
+		t.Fatalf("game.GameState = %v, expected state to be %v after payout", game.GameState, NoState)
+	}
+
+	balance := player.Balance
+	if balance != wants {
+		t.Fatalf("player.Balance = %v, wants balance to be %v after payout of losing a game", balance, wants)
+	}
+}
+
+func TestPayoutWithSplitCardsPlayerWinningBoth(t *testing.T) {
+	wants := uint(20)
+	playerCards := []*Card{CreateCard(Ten, Spades), CreateCard(Ten, Hearts)}
+	splitCards := []*Card{CreateCard(Ten, Clubs), CreateCard(Ten, Diamonds)}
+	dealerCards := []*Card{CreateCard(Seven, Spades), CreateCard(Ten, Spades)}
+
+	game, player := playGameWithSplit(playerCards, splitCards, dealerCards)
 
 	if game.GameState != NoState {
 		t.Fatalf("game.GameState = %v, expected state to be %v after payout", game.GameState, NoState)

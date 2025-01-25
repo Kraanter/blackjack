@@ -36,6 +36,10 @@ func (p *ManagedPlayer) GetBalance() uint {
 	return p.Player.Balance
 }
 
+func (p *ManagedPlayer) Split() error {
+	return p.Game.PlayerSplit(p.Player.PlayerNum)
+}
+
 func (p *ManagedPlayer) Bet(amount uint) error {
 	return p.Game.SetPlayerBet(p.Player.PlayerNum, amount)
 }
