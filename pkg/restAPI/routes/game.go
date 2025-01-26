@@ -115,6 +115,6 @@ func playerUpdateHandler(user *users.AuthUser) func(game *blackjack.BlackjackGam
 		defer mutex.Unlock()
 		fmt.Printf("game: %v\n", game)
 		sendSSEvent(user.GetUserWriter(), "update", game)
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 	}
 }

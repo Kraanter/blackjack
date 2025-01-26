@@ -18,7 +18,7 @@ func ensureUserActive(user *AuthUser) {
 			return
 		case <-time.After(time.Second):
 			// Reset the timer if user is active
-			if time.Since(user.lastSeen) < 30*time.Second {
+			if time.Since(user.lastSeen) < 30*time.Second || user.writerCancel != nil {
 				if !inactiveTimer.Stop() {
 					<-inactiveTimer.C // Drain the timer channel
 				}
