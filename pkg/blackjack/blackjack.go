@@ -96,7 +96,9 @@ func (game *BlackjackGame) sendGameUpdate() {
 			game.GameState = DealerState
 			go game.DealerTurn()
 		} else if nextNum != game.CurrentTurn {
+			game.CurrentTurn = nextNum
 			game.sendPlayerTurn(nextNum)
+			game.sendGameUpdate()
 		}
 	}
 }
@@ -173,6 +175,7 @@ func (game *BlackjackGame) reset() {
 	game.payoutBets()
 
 	game.Dealer = nil
+	game.CurrentTurn = PlayerId(0)
 	game.GameState = NoState
 	game.sendGameUpdate()
 }
