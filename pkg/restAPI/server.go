@@ -2,7 +2,6 @@ package restapi
 
 import (
 	"embed"
-	"flag"
 	"net/http"
 	"strconv"
 
@@ -12,15 +11,17 @@ import (
 //go:embed *
 var index embed.FS
 
-func Start() error {
+func Start(port int) error {
 	for _, route := range routes.ApiRoutes {
 		http.HandleFunc(route.Pattern, route.GetRouteHandler())
 	}
 
-	portPtr := flag.Int("port", 42069, "The port to run the server on")
-
 	http.Handle("/", http.FileServerFS(index))
 
-	println("Starting server on port", *portPtr)
-	return http.ListenAndServe(":"+strconv.Itoa(*portPtr), nil)
+	if port == 0 {
+		port = 42069
+	}
+
+	println("Starting server on port", port)
+	return http.ListenAndServe(":"+strconv.Itoa(port), nil)
 }
