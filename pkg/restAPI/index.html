@@ -30,7 +30,7 @@
 	    var playerId;
 
 	    fetch('/join', {method: "POST"}).then(() => {
-		const eventSource = new EventSource('http://localhost:42069/gamestate?sse', { withCredentials: false });
+		const eventSource = new EventSource('/gamestate?sse', { withCredentials: false });
 		eventSource.addEventListener("initial", function(event) {
 		    const dataElement = document.getElementById('sse-initial');
 		    dataElement.innerHTML += "initial: " + event.data + '<br>';
