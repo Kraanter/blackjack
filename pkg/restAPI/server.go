@@ -2,7 +2,9 @@ package restapi
 
 import (
 	"embed"
+	"flag"
 	"net/http"
+	"strconv"
 
 	"github.com/kraanter/blackjack/pkg/restAPI/routes"
 )
@@ -15,8 +17,10 @@ func Start() error {
 		http.HandleFunc(route.Pattern, route.GetRouteHandler())
 	}
 
+	portPtr := flag.Int("port", 42069, "The port to run the server on")
+
 	http.Handle("/", http.FileServerFS(index))
 
-	println("Starting server on port 42069!")
-	return http.ListenAndServe(":42069", nil)
+	println("Starting server on port", *portPtr)
+	return http.ListenAndServe(":"+strconv.Itoa(*portPtr), nil)
 }
