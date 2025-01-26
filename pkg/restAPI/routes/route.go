@@ -39,6 +39,11 @@ func (r *ApiRoute) GetRouteHandler() http.HandlerFunc {
 		res.Header().Set("Access-Control-Expose-Headers", "*")
 		res.Header().Set("Access-Control-Allow-Credentials", "true")
 
+		if req.Method == http.MethodOptions {
+			res.WriteHeader(http.StatusOK)
+			return
+		}
+
 		hasAccess := isAllowed(res, req)
 		if !hasAccess {
 			handleUnauthenticated(res)
