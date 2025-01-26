@@ -15,21 +15,21 @@
 
     <script>
 	    function bet() {
-		fetch('http://localhost:42069/hand', {method: "POST", body: JSON.stringify({"bet-amount": 10})})
+		fetch('/hand', {method: "POST", body: JSON.stringify({"bet-amount": 10})})
 	    }
 	    function hit() {
-		fetch('http://localhost:42069/hit', {method: "PATCH"})
+		fetch('/hit', {method: "PATCH"})
 	    }
 	    function stand() {
-		fetch('http://localhost:42069/stand', {method: "PATCH"})
+		fetch('/stand', {method: "PATCH"})
 	    }
 	    function split() {
-		fetch('http://localhost:42069/split', {method: "PATCH"})
+		fetch('/split', {method: "PATCH"})
 	    }
 
 	    var playerId;
 
-	    fetch('http://localhost:42069/join', {method: "POST"}).then(() => {
+	    fetch('/join', {method: "POST"}).then(() => {
 		const eventSource = new EventSource('http://localhost:42069/gamestate?sse', { withCredentials: false });
 		eventSource.addEventListener("initial", function(event) {
 		    const dataElement = document.getElementById('sse-initial');
