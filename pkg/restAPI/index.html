@@ -8,8 +8,12 @@
     <button onclick="hit()">Hit</button>
     <button onclick="stand()">Stand</button>
     <button onclick="split()">Split</button>
+    <h2> Your cards </h2>
     <div id="player-cards"></div>
+    <h2> Dealer cards </h2>
     <div id="dealer-cards"></div>
+
+    <h2> Data stream </h2>
     <div id="sse-initial"></div>
     <div id="sse-data"></div>
 
@@ -71,7 +75,19 @@
 			let cardToAdd;
 			if (cardEnum == 0) cardToAdd = "A";
 			else if (cardEnum < 10) cardToAdd = (cardEnum+1).toString()
-			else cardToAdd = "10"
+			else {
+			    switch(cardEnum) {
+				case 10:
+					cardToAdd = "J";
+					break;
+				case 11:
+					cardToAdd = "Q";
+					break;
+				case 12:
+					cardToAdd = "K";
+					break;
+			    }
+			}
 
 			handStr += cardToAdd + " "
 		    }
