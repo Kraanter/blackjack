@@ -201,7 +201,7 @@ func (game *BlackjackGame) payoutBets() map[PlayerId]uint {
 
 			winnings := uint(0)
 			switch {
-			case dealerBlackjack && playerBlackjack, playerTotal == dealerTotal:
+			case dealerBlackjack && playerBlackjack, !playerBust && (playerTotal == dealerTotal):
 				winnings = hand.Bet
 			case playerBlackjack && !dealerBlackjack:
 				// Blackjack pays 2 to 3
