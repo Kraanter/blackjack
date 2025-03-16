@@ -117,6 +117,7 @@
 		cardsElement.innerHTML = ""
 		console.log("hands", hands)
 		for(hand of hands) {
+		    if (!hand) continue
 		    console.log("hand", hand)
 		    let handStr = "";
 		    for (card of hand.cards) {
