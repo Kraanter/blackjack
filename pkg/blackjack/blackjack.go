@@ -15,9 +15,10 @@ type BlackjackGame struct {
 	GameState   GameState            `json:"gameState"`
 	CurrentTurn PlayerId             `json:"current-turn"`
 
-	playerCount PlayerId
-	shoe        Shoe
-	mutex       sync.Mutex
+	hiddenDealerCard *Card
+	playerCount      PlayerId
+	shoe             Shoe
+	mutex            sync.Mutex
 
 	OnPlayerTurn func(PlayerId)       `json:"-"`
 	OnGameUpdate func(*BlackjackGame) `json:"-"`
@@ -244,7 +245,7 @@ func (game *BlackjackGame) String() string {
 		playerStrings += "  " + v.String() + "\n"
 	})
 
-	return fmt.Sprintf("GameState: %v Playercount: %v NextPlayer: %v\nDealer: %v\nHands:\n%v", game.GameState, game.GetPlayerCount(), nextString, game.Dealer.String(), playerStrings)
+	return fmt.Sprintf("GameState: %v Playercount: %v NextPlayer: %v\nDealer: %v hidden: %v\nHands:\n%v", game.GameState, game.GetPlayerCount(), nextString, game.Dealer.String(), game.hiddenDealerCard, playerStrings)
 }
 
 func (b *BlackjackGame) forEachPlayer(fn func(id PlayerId, player *Player)) {

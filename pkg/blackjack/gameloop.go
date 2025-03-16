@@ -50,7 +50,11 @@ func (b *BlackjackGame) DealInitialCards() {
 			}
 		}
 
-		b.dealCard(b.Dealer)
+		if len(b.Dealer.Cards) == 1 {
+			b.hiddenDealerCard = b.shoe.DrawCard()
+		} else {
+			b.dealCard(b.Dealer)
+		}
 	}
 }
 
@@ -138,6 +142,11 @@ func (game *BlackjackGame) DealerTurn() {
 	if game.GameState != DealerState {
 		return
 	}
+
+	// Show the hidden dealer card
+	game.Dealer.AddCard(game.hiddenDealerCard)
+	game.hiddenDealerCard = nil
+	game.sendGameUpdate()
 
 	for shouldDealerDrawCard(game.Dealer) {
 		game.dealCard(game.Dealer)
