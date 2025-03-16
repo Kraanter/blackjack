@@ -65,6 +65,9 @@
 			updatePlayerTurn(data.player.game["current-turn"])
 			updateBalance(data.player.game.players[playerId].balance)
 			showHands(data.player.game.players[playerId].hands, 'player-cards')
+			if (data.player.game.dealer.length === 1) {
+			    data.player.game.dealer.push("X")
+			}
 			showHands([data.player.game.dealer], 'dealer-cards')
 		    });
 
@@ -77,6 +80,9 @@
 			updatePlayerTurn(data["current-turn"])
 			updateBalance(data.players[playerId].balance)
 			showHands(data.players[playerId].hands, 'player-cards')
+			if (data.dealer?.cards.length === 1) {
+			    data.dealer.cards.push("X")
+			}
 			showHands([data.dealer], 'dealer-cards')
 		    });
 
@@ -88,7 +94,6 @@
 
 	    setInterval(() => {
 		document.getElementById("leave").disabled = !(eventSource?.readyState === 1)
-		console.log(eventSource?.readyState)
 	    }, 1000)
 
 	    connect()
@@ -116,6 +121,10 @@
 		    let handStr = "";
 		    for (card of hand.cards) {
 			console.log("card", card)
+			if (card === "X") {
+			    handStr += "X "
+			    continue
+			}
 			const cardEnum = card.face
 			if (cardEnum < 0 || cardEnum > 12) return
 
