@@ -103,6 +103,8 @@ func gameStateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+var TimeBetweenGameUpdates time.Duration = 100 * time.Millisecond
+
 func playerUpdateHandler(user *users.AuthUser) func(game *blackjack.BlackjackGame) {
 	var mutex sync.Mutex
 
@@ -113,6 +115,6 @@ func playerUpdateHandler(user *users.AuthUser) func(game *blackjack.BlackjackGam
 		defer mutex.Unlock()
 		fmt.Printf("game: %v\n", game)
 		sendSSEvent(user.GetUserWriter(), "update", game)
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(TimeBetweenGameUpdates)
 	}
 }
