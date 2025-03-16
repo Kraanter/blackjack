@@ -1,6 +1,8 @@
 package users
 
-import "time"
+import (
+	"time"
+)
 
 func ensureUserActive(user *AuthUser) {
 	inactiveTimer := time.NewTimer(30 * time.Second) // Timer for inactivity
@@ -22,7 +24,10 @@ func ensureUserActive(user *AuthUser) {
 				if !inactiveTimer.Stop() {
 					<-inactiveTimer.C // Drain the timer channel
 				}
-				inactiveTimer.Reset(30 * time.Second)
+				inactiveTimer.Reset(10 * time.Second)
+			} else {
+				// User is now gone for longer than 30 seconds
+				// TODO: might want to send user a message if they are gone for this long -_-
 			}
 		}
 	}

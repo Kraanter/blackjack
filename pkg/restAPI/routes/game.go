@@ -106,9 +106,7 @@ func gameStateHandler(w http.ResponseWriter, r *http.Request) {
 func playerUpdateHandler(user *users.AuthUser) func(game *blackjack.BlackjackGame) {
 	var mutex sync.Mutex
 
-	go func() {
-		sendSSEvent(user.GetUserWriter(), "initial", user)
-	}()
+	go sendSSEvent(user.GetUserWriter(), "initial", user)
 
 	return func(game *blackjack.BlackjackGame) {
 		mutex.Lock()

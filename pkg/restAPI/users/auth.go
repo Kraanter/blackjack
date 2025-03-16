@@ -102,10 +102,12 @@ func (user *AuthUser) SetUserWriter(writer http.ResponseWriter, requestContext c
 		user.writerCancel()
 	}
 
-	valContext, cancel := context.WithCancel(context.WithValue(requestContext, writerContextKey, writer))
+	go func() {
+		<-requestContext.Done()
+		user.writerCancel = nil
+	}()
 
-	user.writerCancel = cancel
-	user.writerContext = valContext
+	user.writerContext, user.writerCancel = context.WithCancel(context.WithValue(requestContext, writerContextKey, writer))
 }
 
 func (user *AuthUser) WriteContext() context.Context {
