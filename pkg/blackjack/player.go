@@ -27,6 +27,10 @@ var NotEnoughBalanceError = fmt.Errorf("Player wants to bet more than they have 
 var WrongGameStateError = fmt.Errorf("Game is in the wrong state")
 var NotHighEnoughBetError = fmt.Errorf("Bet needs to be higher to be valid")
 
+func createGameStateError(expected, actual GameState) error {
+	return fmt.Errorf("%w: expected (%v) but is (%v)", WrongGameStateError, expected, actual)
+}
+
 func (p *Player) PlaceBet(bet uint) error {
 	if p.playing || len(p.Hands) != 0 {
 		return WrongGameStateError

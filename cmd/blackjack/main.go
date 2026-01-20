@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
@@ -19,7 +20,7 @@ func main() {
 	game.OnGameUpdate = func(game *blackjack.BlackjackGame) {
 		printMutex.Lock()
 		defer printMutex.Unlock()
-		fmt.Printf("\n---\ngame_update: %v\n\nplayers: \n", game.GameState)
+		fmt.Printf("\n---\ngame_update: %v\n\nplayers: \n", game.GameState.Get())
 
 		for _, player := range players {
 			fmt.Println(player.String())
@@ -32,7 +33,7 @@ func main() {
 		game.PlayerStand(pi)
 	}
 
-	game.Start()
+	game.Start(context.Background())
 
 	err := game.SetPlayerBet(players[0].PlayerNum, 5)
 	err = game.SkipPlayerBet(players[1].PlayerNum)
@@ -41,7 +42,7 @@ func main() {
 		println(err.Error())
 	}
 
-	for game.GameState != blackjack.NoState {
+	for game.GameState.Get() != blackjack.NoState {
 	}
 	printMutex.Lock()
 	printMutex.Unlock()

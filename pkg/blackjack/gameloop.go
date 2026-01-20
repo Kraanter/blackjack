@@ -1,6 +1,9 @@
 package blackjack
 
-import "time"
+import (
+	"context"
+	"fmt"
+)
 
 type GameState = int
 
@@ -13,31 +16,56 @@ const (
 	PayoutState
 )
 
-func (b *BlackjackGame) Start() {
-	if b.GameState != NoState {
+var NoPlayersInGameError = fmt.Errorf("Game does not have any players")
+
+func (b *BlackjackGame) Initialize() {
+	if b.GameState.Get() != NoState {
 		return
 	}
 
-	b.GameState = BettingState
+	b.bettingStateChannel = make(chan struct{})
+	b.GameState.Set(BettingState)
+	b.sendGameUpdate()
+}
+
+// This starts the game until all bets are in
+// Then the gameplay loop is managed through the players
+// This ends when the game broadcasts that it goes into PlayingState
+func (b *BlackjackGame) Start(ctx context.Context) error {
+	if b.GameState.Get() == NoState {
+		b.Initialize()
+	}
+
+	if b.GameState.Get() != BettingState {
+		return b.createGameStateError(BettingState)
+	}
+
+	if err := b.WaitUntilBettingFinished(ctx); err != nil {
+		return err
+	}
+
+	if len(b.PlayerMap) == 0 {
+		return NoPlayersInGameError
+	}
+
+	b.DealInitialCards()
+	b.GameState.Set(PlayingState)
 	b.sendGameUpdate()
 
-	go func() {
-		for b.GameState == BettingState && len(b.GetPlayersWihoutBets()) > 0 {
-			time.Sleep(100 * time.Millisecond)
-		}
+	return nil
+}
 
-		if len(b.PlayerMap) == 0 {
-			return
-		}
-
-		b.DealInitialCards()
-		b.GameState = PlayingState
-		b.sendGameUpdate()
-	}()
+func (b *BlackjackGame) WaitUntilBettingFinished(ctx context.Context) error {
+	select {
+	case <-b.bettingStateChannel:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func (b *BlackjackGame) DealInitialCards() {
-	if b.GameState == PlayingState {
+	if b.GameState.Get() == PlayingState {
 		return
 	}
 
@@ -62,8 +90,8 @@ func (b *BlackjackGame) DealInitialCards() {
 // Returns false if game is not in state for player to receive card
 // Returns error if any other reason like player could not be found
 func (game *BlackjackGame) PlayerHit(playerNum PlayerId) (bool, error) {
-	if game.GameState != PlayingState {
-		return false, WrongGameStateError
+	if game.GameState.Get() != PlayingState {
+		return false, game.createGameStateError(PlayingState)
 	}
 
 	if isDealer, num := game.nextPlayersTurn(); isDealer || num != playerNum {
@@ -139,7 +167,7 @@ func (game *BlackjackGame) PlayerSplit(playerNum PlayerId) error {
 }
 
 func (game *BlackjackGame) DealerTurn() {
-	if game.GameState != DealerState {
+	if game.GameState.Get() != DealerState {
 		return
 	}
 
@@ -185,7 +213,7 @@ func (game *BlackjackGame) dealCard(hand *Hand) bool {
 }
 
 func (game *BlackjackGame) finishRound() {
-	game.GameState = PayoutState
+	game.GameState.Set(PayoutState)
 	game.sendGameUpdate()
 	game.reset()
 }
