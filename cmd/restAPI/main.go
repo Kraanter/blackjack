@@ -13,7 +13,7 @@ func main() {
 
 	settings := restapi.CreateDefaultServerSettings()
 	settings.Port = uint(*portPtr)
-	settings.TimeBetweenGameUpdates = 250 * time.Millisecond
+	settings.TimeBetweenGameUpdates = 150 * time.Millisecond
 
 	restapi.Start(settings)
 }
