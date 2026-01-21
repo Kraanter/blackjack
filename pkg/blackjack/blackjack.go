@@ -18,7 +18,7 @@ type BlackjackGame struct {
 	CurrentTurn util.Cell[PlayerId]  `json:"current-turn"`
 
 	hiddenDealerCard util.Cell[*Card]
-	playerCount      PlayerId
+	playerCount      uint
 	shoe             Shoe
 	playerMapMutex   sync.Mutex
 	sendMutex        sync.Mutex
@@ -181,6 +181,10 @@ func (b *BlackjackGame) GetPlayersWihoutBets() []PlayerId {
 // Returns true if dealers turn is next
 // Returns false, playerId of the player that is next
 func (b *BlackjackGame) nextPlayersTurn() (isDealersTurn bool, turnPlayerId PlayerId) {
+	if b.playerCount == 0 {
+		return false, PlayerId(0)
+	}
+
 	players := make([]PlayerId, 0, len(b.PlayerMap))
 	b.forEachPlayer(func(k PlayerId, player *Player) {
 		if len(player.Hands) == 0 {

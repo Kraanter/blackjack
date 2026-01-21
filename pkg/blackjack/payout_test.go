@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func playGameWithCards(playerCards []*Card, dealerCards []*Card) (*BlackjackGame, *Player) {
+func playGameWithCards(playerCards, dealerCards []*Card) (*BlackjackGame, *Player) {
 	game := CreateGame()
 	player := game.AddPlayerWithBalance(10)
 
@@ -15,8 +15,8 @@ func playGameWithCards(playerCards []*Card, dealerCards []*Card) (*BlackjackGame
 	hand.Cards = playerCards
 	hand.lock()
 
-	game.Dealer.Cards = dealerCards
-	game.Dealer.lock()
+	game.hiddenDealerCard.Set(dealerCards[0])
+	game.Dealer.Cards = dealerCards[1:]
 
 	game.GameState.Set(PlayingState)
 	game.gameloopTick()
@@ -26,7 +26,7 @@ func playGameWithCards(playerCards []*Card, dealerCards []*Card) (*BlackjackGame
 	return game, player
 }
 
-func playGameWithSplit(playerCards []*Card, splitCards []*Card, dealerCards []*Card) (*BlackjackGame, *Player) {
+func playGameWithSplit(playerCards, splitCards, dealerCards []*Card) (*BlackjackGame, *Player) {
 	game := CreateGame()
 	player := game.AddPlayerWithBalance(10)
 
@@ -37,19 +37,14 @@ func playGameWithSplit(playerCards []*Card, splitCards []*Card, dealerCards []*C
 	hand.Cards = playerCards
 	game.GameState.Set(PlayingState)
 
+	game.hiddenDealerCard.Set(dealerCards[0])
+	game.Dealer.Cards = dealerCards[1:]
+
 	game.PlayerSplit(player.PlayerNum)
 	player.GetActiveHand().Cards[1] = splitCards[0]
 	game.PlayerStand(player.PlayerNum)
 	player.GetActiveHand().Cards[1] = splitCards[1]
 	game.PlayerStand(player.PlayerNum)
-
-	game.Dealer.Cards = dealerCards
-	game.Dealer.lock()
-
-	game.GameState.Set(PlayingState)
-	game.gameloopTick()
-
-	game.finishRound()
 
 	return game, player
 }
@@ -148,7 +143,7 @@ func TestPayoutWithSplitCardsPlayerWinningBoth(t *testing.T) {
 	game, player := playGameWithSplit(playerCards, splitCards, dealerCards)
 
 	if game.GameState.Get() != NoState {
-		t.Fatalf("game.GameState = %v, expected state to be %v after payout", game.GameState.Get(), NoState)
+		t.Fatalf("game.GameState = %v, expected state to be %v after payout,  game: (%v)", game.GameState.Get(), NoState, game)
 	}
 
 	balance := player.Balance
