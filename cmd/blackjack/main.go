@@ -33,7 +33,7 @@ func main() {
 		game.PlayerStand(pi)
 	}
 
-	game.Start(context.Background())
+	game.Initialize()
 
 	err := game.SetPlayerBet(players[0].PlayerNum, 5)
 	err = game.SkipPlayerBet(players[1].PlayerNum)
@@ -42,8 +42,10 @@ func main() {
 		println(err.Error())
 	}
 
+	game.Start(context.Background())
+
 	for game.GameState.Get() != blackjack.NoState {
 	}
 	printMutex.Lock()
-	printMutex.Unlock()
+	defer printMutex.Unlock()
 }
