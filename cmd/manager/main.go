@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
@@ -16,7 +17,7 @@ func main() {
 	player.Game.OnGameUpdate = func(game *blackjack.BlackjackGame) {
 		printMutex.Lock()
 		defer printMutex.Unlock()
-		fmt.Printf("\n---\ngame_update: %v\n\nplayers: \n", game.GameState)
+		fmt.Printf("\n---\ngame_update: %v\n\nplayers: \n", game.GameState.Get())
 
 		fmt.Println(player.String())
 
@@ -27,7 +28,7 @@ func main() {
 		player.Stand()
 	}
 
-	player.Game.Start()
+	player.Game.Initialize()
 
 	err := player.Bet(10)
 	if err != nil {
@@ -35,8 +36,9 @@ func main() {
 		panic(1)
 	}
 
-	for player.Game.GameState != blackjack.NoState {
+	player.Game.Start(context.Background())
+
+	for player.Game.GameState.Get() != blackjack.NoState {
 	}
 	printMutex.Lock()
-	printMutex.Unlock()
 }
