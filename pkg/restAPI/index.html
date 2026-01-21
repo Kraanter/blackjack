@@ -1,16 +1,18 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>SSE Example</title>
 </head>
+
 <body>
     <button onclick="bet()">Bet</button>
     <input type="number" id="betAmount" min="1" value="10">
     <button onclick="leave()" id="leave">Leave</button>
     <div id="controls" style="display: none;">
-	<button onclick="hit()">Hit</button>
-	<button onclick="stand()">Stand</button>
-	<button onclick="split()">Split</button>
+        <button onclick="hit()">Hit</button>
+        <button onclick="stand()">Stand</button>
+        <button onclick="split()">Split</button>
     </div>
     <h2> Your cards (balance: <span id="balance"></span>) </h2>
     <div id="player-cards"></div>
@@ -22,136 +24,137 @@
     <div id="sse-data"></div>
 
     <script>
-	    function getBetAmount() {
-		const value = document.getElementById("betAmount").value
-		console.log(value, +value)
-		return +value
-	    }
+        function getBetAmount() {
+            const value = document.getElementById("betAmount").value
+            console.log(value, +value)
+            return +value
+        }
 
-	    function bet() {
-		fetch('/hand', {method: "POST", body: JSON.stringify({"bet-amount": getBetAmount()})})
-	    }
-	    function hit() {
-		fetch('/hit', {method: "PATCH"})
-	    }
-	    function stand() {
-		fetch('/stand', {method: "PATCH"})
-	    }
-	    function split() {
-		fetch('/split', {method: "PATCH"})
-	    }
-	    function leave() {
-		if (eventSource) {
-		    eventSource.close()
-		    eventSource = undefined
-		}
-	    }
+        function bet() {
+            fetch('/hand', {method: "POST", body: JSON.stringify({"bet-amount": getBetAmount()})})
+        }
+        function hit() {
+            fetch('/hit', {method: "PATCH"})
+        }
+        function stand() {
+            fetch('/stand', {method: "PATCH"})
+        }
+        function split() {
+            fetch('/split', {method: "PATCH"})
+        }
+        function leave() {
+            if (eventSource) {
+                eventSource.close()
+                eventSource = undefined
+            }
+        }
 
-	    var playerId;
-	    var turnId;
-	    var eventSource;
+        var playerId;
+        var turnId;
+        var eventSource;
 
-	    function connect() {
-		leave()
+        function connect() {
+            leave()
 
-		fetch('/join', {method: "POST"}).then(() => {
-		    eventSource = new EventSource('/gamestate?sse', { withCredentials: false });
-		    eventSource.addEventListener("initial", function(event) {
-			const dataElement = document.getElementById('sse-initial');
-			dataElement.innerHTML += "initial: " + event.data + '<br>';
-			const data = JSON.parse(event.data)
-			console.log("inital",data)
-			playerId = data.player.player.playerNum
-			updatePlayerTurn(data.player.game["current-turn"])
-			updateBalance(data.player.game.players[playerId].balance)
-			showHands(data.player.game.players[playerId].hands, 'player-cards')
-			if (data.player.game.dealer.length === 1) {
-			    data.player.game.dealer.push("X")
-			}
-			showHands([data.player.game.dealer], 'dealer-cards')
-		    });
+            fetch('/join', {method: "POST"}).then(() => {
+                eventSource = new EventSource('/gamestate?sse', {withCredentials: false});
+                eventSource.addEventListener("initial", function (event) {
+                    const dataElement = document.getElementById('sse-initial');
+                    dataElement.innerHTML += "initial: " + event.data + '<br>';
+                    const data = JSON.parse(event.data)
+                    console.log("inital", data)
+                    playerId = data.player.player.playerNum
+                    updatePlayerTurn(data.player.game["current-turn"])
+                    updateBalance(data.player.game.players[playerId].balance)
+                    showHands(data.player.game.players[playerId].hands, 'player-cards')
+                    if (data.player.game.dealer.length === 1) {
+                        data.player.game.dealer.push("X")
+                    }
+                    showHands([data.player.game.dealer], 'dealer-cards')
+                });
 
-		    eventSource.addEventListener("update", function(event) {
-			const dataElement = document.getElementById('sse-data');
-			dataElement.innerHTML += event.data + '<br>';
+                eventSource.addEventListener("update", function (event) {
+                    const dataElement = document.getElementById('sse-data');
+                    dataElement.innerHTML += event.data + '<br>';
 
-			const data = JSON.parse(event.data)
-			console.log('update', data, playerId)
-			updatePlayerTurn(data["current-turn"])
-			updateBalance(data.players[playerId].balance)
-			showHands(data.players[playerId].hands, 'player-cards')
-			if (data.dealer?.cards.length === 1) {
-			    data.dealer.cards.push("X")
-			}
-			showHands([data.dealer], 'dealer-cards')
-		    });
+                    const data = JSON.parse(event.data)
+                    console.log('update', data, playerId)
+                    updatePlayerTurn(data["current-turn"])
+                    updateBalance(data.players[playerId].balance)
+                    showHands(data.players[playerId].hands, 'player-cards')
+                    if (data.dealer?.cards.length === 1) {
+                        data.dealer.cards.push("X")
+                    }
+                    showHands([data.dealer], 'dealer-cards')
+                });
 
-		    eventSource.addEventListener("close", function(event) {
-			eventSource.close()
-		    })
-		})
-	    }
+                eventSource.addEventListener("close", function (event) {
+                    eventSource.close()
+                })
+            })
+        }
 
-	    setInterval(() => {
-		document.getElementById("leave").disabled = !(eventSource?.readyState === 1)
-	    }, 1000)
+        setInterval(() => {
+            document.getElementById("leave").disabled = !(eventSource?.readyState === 1)
+        }, 1000)
 
-	    connect()
+        connect()
 
-	    function updateBalance(bal) {
-		document.getElementById("balance").innerHTML = bal
-	    }
+        function updateBalance(bal) {
+            document.getElementById("balance").innerHTML = bal
+        }
 
-	    function updatePlayerTurn(newId) {
-		turnId = newId
-		const controls = document.getElementById("controls")
-		if (turnId == playerId) {
-		    controls.style.display = "block"
-		} else {
-		    controls.style.display = "none"
-		}
-	    }
+        function updatePlayerTurn(newId) {
+            turnId = newId
+            const controls = document.getElementById("controls")
+            if (turnId == playerId) {
+                controls.style.display = "block"
+            } else {
+                controls.style.display = "none"
+            }
+        }
 
-	    function showHands(hands, elementId) {
-		const cardsElement = document.getElementById(elementId);
-		cardsElement.innerHTML = ""
-		console.log("hands", hands)
-		for(hand of hands) {
-		    if (!hand) continue
-		    console.log("hand", hand)
-		    let handStr = "";
-		    for (card of hand.cards) {
-			console.log("card", card)
-			if (card === "X") {
-			    handStr += "X "
-			    continue
-			}
-			const cardEnum = card.face
-			if (cardEnum < 0 || cardEnum > 12) return
+        function showHands(hands, elementId) {
+            const cardsElement = document.getElementById(elementId);
+            cardsElement.innerHTML = ""
+            console.log("hands", hands)
+            for (hand of hands) {
+                if (!hand) continue
+                console.log("hand", hand)
+                let handStr = "";
+                for (card of hand.cards) {
+                    console.log("card", card)
+                    if (card === "X") {
+                        handStr += "X "
+                        continue
+                    }
+                    const cardEnum = card.face
+                    if (cardEnum < 0 || cardEnum > 12) return
 
-			let cardToAdd;
-			if (cardEnum == 0) cardToAdd = "A";
-			else if (cardEnum < 10) cardToAdd = (cardEnum+1).toString()
-			else {
-			    switch(cardEnum) {
-				case 10:
-					cardToAdd = "J";
-					break;
-				case 11:
-					cardToAdd = "Q";
-					break;
-				case 12:
-					cardToAdd = "K";
-					break;
-			    }
-			}
+                    let cardToAdd;
+                    if (cardEnum == 0) cardToAdd = "A";
+                    else if (cardEnum < 10) cardToAdd = (cardEnum + 1).toString()
+                    else {
+                        switch (cardEnum) {
+                            case 10:
+                                cardToAdd = "J";
+                                break;
+                            case 11:
+                                cardToAdd = "Q";
+                                break;
+                            case 12:
+                                cardToAdd = "K";
+                                break;
+                        }
+                    }
 
-			handStr += cardToAdd + " "
-		    }
-		    console.log("handStr", handStr)
-		    cardsElement.innerHTML += handStr + '<br>';
-		}
-	    }
+                    handStr += cardToAdd + " "
+                }
+                console.log("handStr", handStr)
+                cardsElement.innerHTML += handStr + '<br>';
+            }
+        }
     </script>
 </body>
+
 </html>
