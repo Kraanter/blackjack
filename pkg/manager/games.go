@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/kraanter/blackjack/pkg/blackjack"
@@ -46,7 +47,7 @@ func (m *Manager) GetGameWithId(id GameId) (*ManagedGame, error) {
 }
 
 func (m *Manager) createNewGame() (GameId, *ManagedGame) {
-	newGame := createManagedGame()
+	newGame := createManagedGame(context.Background())
 	for {
 		gameId := CreateRandomGameId(m.Settings.IdLength)
 

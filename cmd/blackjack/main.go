@@ -33,8 +33,6 @@ func main() {
 		game.PlayerStand(pi)
 	}
 
-	game.Initialize()
-
 	err := game.SetPlayerBet(players[0].PlayerNum, 5)
 	err = game.SkipPlayerBet(players[1].PlayerNum)
 	err = game.SetPlayerBet(players[2].PlayerNum, 2)

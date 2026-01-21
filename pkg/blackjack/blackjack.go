@@ -41,6 +41,8 @@ func CreateGame() *BlackjackGame {
 	game.CurrentTurn.After(game.sendPlayerTurn)
 	game.GameState.After(func(_ GameState) { game.sendGameUpdate() })
 
+	game.Initialize()
+
 	return &game
 }
 
@@ -140,8 +142,8 @@ func (game *BlackjackGame) sendPlayerTurn(playerId PlayerId) {
 
 var PlayerNotFoundError error = fmt.Errorf("Could not find player")
 
-func (game *BlackjackGame) RemovePlayer(playerNum PlayerId) (balance uint, err error) {
-	{
+func (game *BlackjackGame) RemovePlayer(playerNum PlayerId) (uint, error) {
+	balance, err := func () (uint, error) {
 		game.playerMapMutex.Lock()
 		defer game.playerMapMutex.Unlock()
 		playerToDelete, ok := game.PlayerMap[playerNum]
@@ -150,7 +152,10 @@ func (game *BlackjackGame) RemovePlayer(playerNum PlayerId) (balance uint, err e
 		}
 
 		delete(game.PlayerMap, playerNum)
-		balance = playerToDelete.Destroy()
+		return playerToDelete.Destroy(), nil
+	}()
+	if err != nil {
+		return 0, err
 	}
 
 	game.gameloopTick()
@@ -215,7 +220,7 @@ func (game *BlackjackGame) reset() {
 	game.gameloopTick()
 
 	if game.OnGameFinished != nil {
-		game.OnGameFinished(payoutMap)
+		go game.OnGameFinished(payoutMap)
 	}
 
 }

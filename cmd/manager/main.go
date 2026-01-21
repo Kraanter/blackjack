@@ -28,8 +28,6 @@ func main() {
 		player.Stand()
 	}
 
-	player.Game.Initialize()
-
 	err := player.Bet(10)
 	if err != nil {
 		println("Error while betting", err.Error())

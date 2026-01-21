@@ -42,8 +42,6 @@ func TestGameLoop100_000Rounds(t *testing.T) {
 			game.PlayerStand(pi)
 		}
 
-		game.Initialize()
-
 		err := game.SetPlayerBet(players[0].PlayerNum, 5)
 		err = game.SetPlayerBet(players[2].PlayerNum, 2)
 		if err != nil {
@@ -76,12 +74,10 @@ func TestGameLoop100_000Rounds(t *testing.T) {
 	}
 }
 
-func playHand(t *testing.T, playerHand, dealerHand *Hand) *BlackjackGame {
+func playHand(t *testing.T, playerHand, dealerHand *Hand) (*BlackjackGame, string) {
 	game := CreateGame()
 
 	player := game.AddPlayerWithBalance(10)
-
-	game.Initialize()
 
 	err := game.SetPlayerBet(player.PlayerNum, 10)
 	if err != nil {
@@ -102,7 +98,6 @@ func playHand(t *testing.T, playerHand, dealerHand *Hand) *BlackjackGame {
 	game.hiddenDealerCard.Set(dealerHand.Cards[0])
 	dealerHand.Cards = dealerHand.Cards[1:]
 	game.Dealer = dealerHand
-	game.DealInitialCards()
 	game.GameState.Set(PlayingState)
 	game.gameloopTick()
 
@@ -110,7 +105,7 @@ func playHand(t *testing.T, playerHand, dealerHand *Hand) *BlackjackGame {
 		if player, ok := game.GetPlayer(pi); ok {
 			log += fmt.Sprintf("\n--- On player turn \nplayer: (%s)\n---\n\n", player)
 		} else {
-			log += fmt.Sprintf("Not ok player turn")
+			log += "Not ok player turn"
 		}
 	}
 
@@ -130,9 +125,7 @@ func playHand(t *testing.T, playerHand, dealerHand *Hand) *BlackjackGame {
 		t.Fatalf("All players should not have a hand at the end of the game\nlog:%s", log)
 	}
 
-	log = ""
-
-	return game
+	return game, log
 }
 
 func handWithCards(betSize uint, cards ...*Card) *Hand {
@@ -149,13 +142,13 @@ func TestGameLoopBlackjackHandPlayer(t *testing.T) {
 	betSize := uint(10)
 	playerHand := handWithCards(betSize, CreateCard(King, Hearts), CreateCard(Ace, Hearts))
 	dealerHand := handWithCards(0, CreateCard(King, Spades), CreateCard(Seven, Spades))
-	game := playHand(t, playerHand, dealerHand)
+	game, log := playHand(t, playerHand, dealerHand)
 
 	expected := uint(25)
 	game.forEachPlayer(func(_ PlayerId, player *Player) {
 		actual := player.Balance
 		if actual != expected {
-			t.Fatalf("Player (%s) should have get payed out 2.5x (%v), was %v", player.String(), expected, actual)
+			t.Fatalf("Player (%s) should have get payed out 2.5x (%v), was %v\nlog: %s", player.String(), expected, actual, log)
 		}
 	})
 }
