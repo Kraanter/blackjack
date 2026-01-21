@@ -49,7 +49,7 @@ func writeStructToResponse(res http.ResponseWriter, s interface{}, code int) {
 	writeStructToWriter(res, s)
 }
 
-func sendSSEvent(w http.ResponseWriter, event string, data interface{}) {
+func sendSSEvent(w http.ResponseWriter, event string, data any) {
 	fmt.Fprintf(w, "id: %s\nevent: %s\ndata: %s\n\n", event, event, structToString(data))
 	flusher := w.(http.Flusher)
 	if flusher != nil {
@@ -67,6 +67,8 @@ func handleError(res http.ResponseWriter, errmsg string, code int) {
 		Code:   code,
 		Reason: errmsg,
 	}
+
+	fmt.Printf("Error response: %v\n", resBody)
 
 	writeStructToResponse(res, resBody, code)
 }

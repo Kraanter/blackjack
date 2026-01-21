@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/kraanter/blackjack/pkg/restAPI/users"
@@ -37,9 +38,17 @@ func buyHandHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	user.Player.Game.Initialize()
+
 	err = user.Player.Bet(reqBody.BetAmount)
 	if err != nil {
 		handleError(res, err.Error(), http.StatusPaymentRequired)
+		return
+	}
+
+	err = user.Player.Game.Start(context.TODO())
+	if err != nil {
+		handleError(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 

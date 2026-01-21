@@ -45,7 +45,7 @@ func joinGameHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &userCookie)
-	// TODO: Fix this context to be bound to something
+
 	player.Game.Initialize()
 
 	writeStructToResponse(w, player, http.StatusCreated)
