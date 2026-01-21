@@ -29,12 +29,12 @@ func TestGameLoop100_000Rounds(t *testing.T) {
 				log += fmt.Sprintln(player.String())
 			}
 
-			log += fmt.Sprintln("Dealer: ", game.Dealer.String())
+			log += fmt.Sprintln("Dealer: ", game.Dealer.Get().String())
 		}
 
 		game.OnGameFinished = func(payout map[PlayerId]uint) { testFinished() }
-		game.GameState.After(func(v GameState) {
-			log += fmt.Sprintf("Changed gamestate to: %v", v)
+		game.GameState.After(func() {
+			log += fmt.Sprintf("Changed gamestate to: %v", game.GameState.Get())
 		})
 
 		game.OnPlayerTurn = func(pi PlayerId) {
@@ -61,9 +61,9 @@ func TestGameLoop100_000Rounds(t *testing.T) {
 		<-gameFinishedContext.Done()
 
 		if game.GameState.Get() != NoState {
-			t.Fatalf("Game should be in no state (%v) after a match is finished, was %v, ctx: %v\nlog:\n%s", NoState, game.Dealer, gameFinishedContext.Err(), log)
+			t.Fatalf("Game should be in no state (%v) after a match is finished, was %v, ctx: %v\nlog:\n%s", NoState, game.Dealer.Get(), gameFinishedContext.Err(), log)
 		}
-		if game.Dealer != nil {
+		if game.Dealer.Get() != nil {
 			t.Fatalf("Dealer should not have a hand at the end of the game")
 		}
 		if slices.ContainsFunc(players, func(player *Player) bool { return len(player.Hands) != 0 }) {
@@ -91,13 +91,13 @@ func playHand(t *testing.T, playerHand, dealerHand *Hand) (*BlackjackGame, strin
 
 		log += fmt.Sprintln(player.String())
 
-		log += fmt.Sprintln("Dealer: ", game.Dealer.String())
+		log += fmt.Sprintln("Dealer: ", game.Dealer.Get().String())
 	}
 
 	player.Hands = []*Hand{playerHand}
 	game.hiddenDealerCard.Set(dealerHand.Cards[0])
 	dealerHand.Cards = dealerHand.Cards[1:]
-	game.Dealer = dealerHand
+	game.Dealer.Set(dealerHand)
 	game.GameState.Set(PlayingState)
 	game.gameloopTick()
 
@@ -118,7 +118,7 @@ func playHand(t *testing.T, playerHand, dealerHand *Hand) (*BlackjackGame, strin
 	if game.GameState.Get() != NoState {
 		t.Fatalf("Game should be in no state (%v) after a match is finished, was %v\nlog:%s", NoState, game.GameState.Get(), log)
 	}
-	if game.Dealer != nil {
+	if game.Dealer.Get() != nil {
 		t.Fatalf("Dealer should not have a hand at the end of the game\nlog:%s", log)
 	}
 	if slices.ContainsFunc([]*Player{player}, func(player *Player) bool { return len(player.Hands) != 0 }) {

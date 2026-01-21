@@ -69,7 +69,7 @@ func (b *BlackjackGame) DealInitialCards() {
 		return
 	}
 
-	b.Dealer = CreateHand(0)
+	b.Dealer.Set(CreateHand(0))
 
 	for i := 0; i < 2; i++ {
 		for _, player := range b.PlayerMap {
@@ -78,10 +78,10 @@ func (b *BlackjackGame) DealInitialCards() {
 			}
 		}
 
-		if len(b.Dealer.Cards) == 1 {
+		if len(b.Dealer.Get().Cards) == 1 {
 			b.hiddenDealerCard.Set(b.shoe.DrawCard())
 		} else {
-			b.dealCard(b.Dealer)
+			b.dealCard(b.Dealer.Get())
 		}
 	}
 }
@@ -177,15 +177,15 @@ func (game *BlackjackGame) DealerTurn() error {
 	}
 
 	// Show the hidden dealer card
-	game.Dealer.AddCard(hiddenCard)
+	game.Dealer.Get().AddCard(hiddenCard)
 	game.hiddenDealerCard.Set(nil)
 	game.sendGameUpdate()
 
-	for shouldDealerDrawCard(game.Dealer) {
-		game.dealCard(game.Dealer)
+	for shouldDealerDrawCard(game.Dealer.Get()) {
+		game.dealCard(game.Dealer.Get())
 	}
 
-	game.Dealer.lock()
+	game.Dealer.Get().lock()
 	game.gameloopTick()
 
 	game.finishRound()

@@ -26,7 +26,7 @@ func main() {
 			fmt.Println(player.String())
 		}
 
-		fmt.Println("Dealer: ", game.Dealer.String())
+		fmt.Println("Dealer: ", game.Dealer.Get().String())
 	}
 	game.OnPlayerTurn = func(pi blackjack.PlayerId) {
 		game.PlayerHit(pi)

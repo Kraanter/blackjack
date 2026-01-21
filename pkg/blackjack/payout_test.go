@@ -16,7 +16,7 @@ func playGameWithCards(playerCards, dealerCards []*Card) (*BlackjackGame, *Playe
 	hand.lock()
 
 	game.hiddenDealerCard.Set(dealerCards[0])
-	game.Dealer.Cards = dealerCards[1:]
+	game.Dealer.Get().Cards = dealerCards[1:]
 
 	game.GameState.Set(PlayingState)
 	game.gameloopTick()
@@ -38,7 +38,7 @@ func playGameWithSplit(playerCards, splitCards, dealerCards []*Card) (*Blackjack
 	game.GameState.Set(PlayingState)
 
 	game.hiddenDealerCard.Set(dealerCards[0])
-	game.Dealer.Cards = dealerCards[1:]
+	game.Dealer.Get().Cards = dealerCards[1:]
 
 	game.PlayerSplit(player.PlayerNum)
 	player.GetActiveHand().Cards[1] = splitCards[0]
