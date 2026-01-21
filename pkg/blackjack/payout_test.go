@@ -8,7 +8,7 @@ func playGameWithCards(playerCards []*Card, dealerCards []*Card) (*BlackjackGame
 	game := CreateGame()
 	player := game.AddPlayerWithBalance(10)
 
-	game.GameState.Set( BettingState)
+	game.GameState.Set(BettingState)
 	game.SetPlayerBet(player.PlayerNum, 10)
 
 	hand := player.GetActiveHand()
@@ -19,7 +19,7 @@ func playGameWithCards(playerCards []*Card, dealerCards []*Card) (*BlackjackGame
 	game.Dealer.lock()
 
 	game.GameState.Set(PlayingState)
-	game.sendGameUpdate()
+	game.gameloopTick()
 
 	game.finishRound()
 
@@ -47,7 +47,7 @@ func playGameWithSplit(playerCards []*Card, splitCards []*Card, dealerCards []*C
 	game.Dealer.lock()
 
 	game.GameState.Set(PlayingState)
-	game.sendGameUpdate()
+	game.gameloopTick()
 
 	game.finishRound()
 

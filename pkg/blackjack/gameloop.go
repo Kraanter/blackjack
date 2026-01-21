@@ -25,7 +25,7 @@ func (b *BlackjackGame) Initialize() {
 
 	b.bettingStateChannel = make(chan struct{})
 	b.GameState.Set(BettingState)
-	b.sendGameUpdate()
+	b.gameloopTick()
 }
 
 // This starts the game until all bets are in
@@ -50,7 +50,7 @@ func (b *BlackjackGame) Start(ctx context.Context) error {
 
 	b.DealInitialCards()
 	b.GameState.Set(PlayingState)
-	b.sendGameUpdate()
+	b.gameloopTick()
 
 	return nil
 }
@@ -79,7 +79,7 @@ func (b *BlackjackGame) DealInitialCards() {
 		}
 
 		if len(b.Dealer.Cards) == 1 {
-			b.hiddenDealerCard = b.shoe.DrawCard()
+			b.hiddenDealerCard.Set(b.shoe.DrawCard())
 		} else {
 			b.dealCard(b.Dealer)
 		}
@@ -123,7 +123,7 @@ func (game *BlackjackGame) PlayerStand(playerNum PlayerId) error {
 	}
 
 	player.stand()
-	game.sendGameUpdate()
+	game.gameloopTick()
 
 	return nil
 }
@@ -161,19 +161,24 @@ func (game *BlackjackGame) PlayerSplit(playerNum PlayerId) error {
 	game.dealCard(hand)
 	game.dealCard(newHand)
 
-	game.sendGameUpdate()
+	game.gameloopTick()
 
 	return nil
 }
 
-func (game *BlackjackGame) DealerTurn() {
+func (game *BlackjackGame) DealerTurn() error {
 	if game.GameState.Get() != DealerState {
-		return
+		return game.createGameStateError(DealerState)
+	}
+
+	hiddenCard := game.hiddenDealerCard.Get()
+	if hiddenCard == nil {
+		return fmt.Errorf("No dealer card assigned: %w", WrongGameStateError)
 	}
 
 	// Show the hidden dealer card
-	game.Dealer.AddCard(game.hiddenDealerCard)
-	game.hiddenDealerCard = nil
+	game.Dealer.AddCard(hiddenCard)
+	game.hiddenDealerCard.Set(nil)
 	game.sendGameUpdate()
 
 	for shouldDealerDrawCard(game.Dealer) {
@@ -181,9 +186,11 @@ func (game *BlackjackGame) DealerTurn() {
 	}
 
 	game.Dealer.lock()
-	game.sendGameUpdate()
+	game.gameloopTick()
 
 	game.finishRound()
+
+	return nil
 }
 
 func shouldDealerDrawCard(hand *Hand) bool {
@@ -207,7 +214,7 @@ func (game *BlackjackGame) dealCard(hand *Hand) bool {
 	card := game.shoe.DrawCard()
 	ok := hand.AddCard(card)
 
-	game.sendGameUpdate()
+	game.gameloopTick()
 
 	return ok
 }

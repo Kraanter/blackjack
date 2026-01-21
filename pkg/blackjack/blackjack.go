@@ -15,12 +15,13 @@ type BlackjackGame struct {
 	Dealer      *Hand                `json:"dealer"`
 	PlayerMap   map[PlayerId]*Player `json:"players"`
 	GameState   util.Cell[GameState] `json:"gameState"`
-	CurrentTurn PlayerId             `json:"current-turn"`
+	CurrentTurn util.Cell[PlayerId]  `json:"current-turn"`
 
-	hiddenDealerCard *Card
+	hiddenDealerCard util.Cell[*Card]
 	playerCount      PlayerId
 	shoe             Shoe
-	playerMapMutex            sync.Mutex
+	playerMapMutex   sync.Mutex
+	sendMutex        sync.Mutex
 
 	bettingStateChannel chan (struct{})
 
@@ -30,12 +31,17 @@ type BlackjackGame struct {
 }
 
 func CreateGame() *BlackjackGame {
-	return &BlackjackGame{
+	game := BlackjackGame{
 		Dealer:              CreateHand(0),
 		PlayerMap:           make(map[PlayerId]*Player, 0),
 		shoe:                *CreateShoe(1),
 		bettingStateChannel: make(chan struct{}),
 	}
+
+	game.CurrentTurn.After(game.sendPlayerTurn)
+	game.GameState.After(func(_ GameState) { game.sendGameUpdate() })
+
+	return &game
 }
 
 func (game *BlackjackGame) createGameStateError(expected GameState) error {
@@ -70,7 +76,7 @@ func (game *BlackjackGame) SetPlayerBet(playerId PlayerId, betAmount uint) error
 		return err
 	}
 
-	game.sendGameUpdate()
+	game.gameloopTick()
 
 	return nil
 }
@@ -87,7 +93,7 @@ func (game *BlackjackGame) SkipPlayerBet(playerId PlayerId) error {
 
 	player.playing = true
 
-	game.sendGameUpdate()
+	game.gameloopTick()
 
 	return nil
 }
@@ -96,17 +102,22 @@ func (game *BlackjackGame) sendGameUpdate() {
 	if game.OnGameUpdate != nil {
 		game.OnGameUpdate(game)
 	}
+}
+
+func (game *BlackjackGame) gameloopTick() {
+	game.sendGameUpdate()
 
 	switch game.GameState.Get() {
 	case PlayingState:
 		dealer, nextNum := game.nextPlayersTurn()
 		if dealer {
 			game.GameState.Set(DealerState)
-			go game.DealerTurn()
-		} else if nextNum != game.CurrentTurn {
-			game.CurrentTurn = nextNum
-			game.sendPlayerTurn(nextNum)
-			game.sendGameUpdate()
+			err := game.DealerTurn()
+			if err != nil {
+				panic(fmt.Sprintf("Error during dealer turn: %v", err))
+			}
+		} else if nextNum != game.CurrentTurn.Get() {
+			game.CurrentTurn.Set(nextNum)
 		}
 	case BettingState:
 		if len(game.GetPlayersWihoutBets()) == 0 {
@@ -123,6 +134,8 @@ func (game *BlackjackGame) sendPlayerTurn(playerId PlayerId) {
 	if game.OnPlayerTurn != nil {
 		go game.OnPlayerTurn(playerId)
 	}
+
+	game.sendGameUpdate()
 }
 
 var PlayerNotFoundError error = fmt.Errorf("Could not find player")
@@ -140,7 +153,7 @@ func (game *BlackjackGame) RemovePlayer(playerNum PlayerId) (balance uint, err e
 		balance = playerToDelete.Destroy()
 	}
 
-	game.sendGameUpdate()
+	game.gameloopTick()
 
 	return balance, nil
 }
@@ -192,10 +205,10 @@ func (game *BlackjackGame) reset() {
 	payoutMap := game.payoutBets()
 
 	game.Dealer = nil
-	game.CurrentTurn = PlayerId(0)
+	game.CurrentTurn.Set(0)
 	game.GameState.Set(NoState)
 
-	game.sendGameUpdate()
+	game.gameloopTick()
 
 	if game.OnGameFinished != nil {
 		game.OnGameFinished(payoutMap)
@@ -267,7 +280,7 @@ func (game *BlackjackGame) String() string {
 		playerStrings += "  " + v.String() + "\n"
 	})
 
-	return fmt.Sprintf("GameState: %v Playercount: %v NextPlayer: %v\nDealer: %v hidden: %v\nHands:\n%v", game.GameState.Get(), game.GetPlayerCount(), nextString, game.Dealer.String(), game.hiddenDealerCard, playerStrings)
+	return fmt.Sprintf("GameState: %v Playercount: %v NextPlayer: %v\nDealer: %v hidden: %v\nHands:\n%v", game.GameState.Get(), game.GetPlayerCount(), nextString, game.Dealer.String(), game.hiddenDealerCard.Get(), playerStrings)
 }
 
 func (b *BlackjackGame) forEachPlayer(fn func(id PlayerId, player *Player)) {

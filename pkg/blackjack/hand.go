@@ -47,6 +47,10 @@ func (hand *Hand) AddCard(card *Card) bool {
 		return false
 	}
 
+	if card == nil {
+		return false
+	}
+
 	hand.Cards = append(hand.Cards, card)
 	return true
 }

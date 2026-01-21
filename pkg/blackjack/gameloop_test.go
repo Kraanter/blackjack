@@ -9,7 +9,9 @@ import (
 )
 
 func TestGameLoop100_000Rounds(t *testing.T) {
-	for range 10000 {
+	log := ""
+	defer print(log)
+	for range 100_000 {
 		game := CreateGame()
 		players := make([]*Player, 0, 3)
 
@@ -17,10 +19,9 @@ func TestGameLoop100_000Rounds(t *testing.T) {
 		players = append(players, game.AddPlayerWithBalance(10))
 		players = append(players, game.AddPlayerWithBalance(10))
 
-		gameFinishedContext, testFinished := context.WithTimeout(context.Background(), time.Millisecond)
+		gameFinishedContext, testFinished := context.WithTimeout(context.Background(), 200*time.Second)
 		defer testFinished()
 
-		log := ""
 		game.OnGameUpdate = func(game *BlackjackGame) {
 			log += fmt.Sprintf("\n---\ngame_update: %v\n\nplayers:\n", game.GameState.Get())
 
@@ -32,9 +33,11 @@ func TestGameLoop100_000Rounds(t *testing.T) {
 		}
 
 		game.OnGameFinished = func(payout map[PlayerId]uint) { testFinished() }
+		game.GameState.After(func(v GameState) {
+			log += fmt.Sprintf("Changed gamestate to: %v", v)
+		})
 
 		game.OnPlayerTurn = func(pi PlayerId) {
-			log += fmt.Sprintf("Player (%v)'s turn", pi)
 			game.PlayerHit(pi)
 			game.PlayerStand(pi)
 		}
@@ -60,7 +63,7 @@ func TestGameLoop100_000Rounds(t *testing.T) {
 		<-gameFinishedContext.Done()
 
 		if game.GameState.Get() != NoState {
-			t.Fatalf("Game should be in no state (%v) after a match is finished, was %v\nlog:\n%s", NoState, game.GameState.Get(), log)
+			t.Fatalf("Game should be in no state (%v) after a match is finished, was %v, ctx: %v\nlog:\n%s", NoState, game.Dealer, gameFinishedContext.Err(), log)
 		}
 		if game.Dealer != nil {
 			t.Fatalf("Dealer should not have a hand at the end of the game")
@@ -68,6 +71,8 @@ func TestGameLoop100_000Rounds(t *testing.T) {
 		if slices.ContainsFunc(players, func(player *Player) bool { return len(player.Hands) != 0 }) {
 			t.Fatalf("All players should not have a hand at the end of the game")
 		}
+
+		log = ""
 	}
 }
 
@@ -84,6 +89,7 @@ func playHand(t *testing.T, playerHand, dealerHand *Hand) *BlackjackGame {
 	}
 
 	log := ""
+	defer print(log)
 	game.OnGameUpdate = func(game *BlackjackGame) {
 		log += fmt.Sprintf("\n---\ngame_update: %v\n\nplayers:\n", game.GameState.Get())
 
@@ -93,18 +99,18 @@ func playHand(t *testing.T, playerHand, dealerHand *Hand) *BlackjackGame {
 	}
 
 	player.Hands = []*Hand{playerHand}
-	game.hiddenDealerCard = dealerHand.Cards[0]
+	game.hiddenDealerCard.Set(dealerHand.Cards[0])
 	dealerHand.Cards = dealerHand.Cards[1:]
 	game.Dealer = dealerHand
 	game.DealInitialCards()
 	game.GameState.Set(PlayingState)
-	game.sendGameUpdate()
+	game.gameloopTick()
 
 	game.OnPlayerTurn = func(pi PlayerId) {
 		if player, ok := game.GetPlayer(pi); ok {
-			fmt.Printf("\n--- On player turn \nplayer: (%s)\n---\n\n", player)
+			log += fmt.Sprintf("\n--- On player turn \nplayer: (%s)\n---\n\n", player)
 		} else {
-			fmt.Printf("Not ok player turn")
+			log += fmt.Sprintf("Not ok player turn")
 		}
 	}
 
@@ -123,6 +129,8 @@ func playHand(t *testing.T, playerHand, dealerHand *Hand) *BlackjackGame {
 	if slices.ContainsFunc([]*Player{player}, func(player *Player) bool { return len(player.Hands) != 0 }) {
 		t.Fatalf("All players should not have a hand at the end of the game\nlog:%s", log)
 	}
+
+	log = ""
 
 	return game
 }

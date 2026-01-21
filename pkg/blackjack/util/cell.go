@@ -9,7 +9,7 @@ import (
 type Cell[T any] struct {
 	mu    sync.RWMutex
 	v     T
-	after func()
+	after func(T)
 }
 
 func New[T any](initial T) *Cell[T] {
@@ -17,7 +17,7 @@ func New[T any](initial T) *Cell[T] {
 }
 
 // After sets a hook that is called after writes (optional).
-func (c *Cell[T]) After(fn func()) {
+func (c *Cell[T]) After(fn func(T)) {
 	c.mu.Lock()
 	c.after = fn
 	c.mu.Unlock()
@@ -37,7 +37,7 @@ func (c *Cell[T]) Set(v T) {
 	c.mu.Unlock()
 
 	if after != nil {
-		after()
+		after(v)
 	}
 }
 
@@ -58,7 +58,7 @@ func (c *Cell[T]) Write(fn func(v *T)) {
 	c.mu.Unlock()
 
 	if after != nil {
-		after()
+		after(c.v)
 	}
 }
 
@@ -80,7 +80,7 @@ func (c *Cell[T]) UnmarshalJSON(b []byte) error {
 	c.mu.Unlock()
 
 	if after != nil {
-		after()
+		after(tmp)
 	}
 	return nil
 }
