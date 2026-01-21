@@ -103,7 +103,6 @@ func (user *AuthUser) SetUserWriter(writer http.ResponseWriter, requestContext c
 	go func() {
 		<-requestContext.Done()
 		user.writerCancel = nil
-		user.Player.Game.RemovePlayer(user.Player.Player.PlayerNum)
 	}()
 
 	user.writerContext, user.writerCancel = context.WithCancel(context.WithValue(requestContext, writerContextKey, writer))

@@ -31,7 +31,7 @@ func createGameStateError(expected, actual GameState) error {
 	return fmt.Errorf("%w: expected (%v) but is (%v)", WrongGameStateError, expected, actual)
 }
 
-func (p *Player) PlaceBet(bet uint) error {
+func (p *Player) placeBet(bet uint) error {
 	if p.playing || len(p.Hands) != 0 {
 		return WrongGameStateError
 	}

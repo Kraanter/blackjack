@@ -77,7 +77,7 @@ func (game *BlackjackGame) SetPlayerBet(playerId PlayerId, betAmount uint) error
 		return PlayerNotFoundError
 	}
 
-	err := player.PlaceBet(betAmount)
+	err := player.placeBet(betAmount)
 	if err != nil {
 		return err
 	}
