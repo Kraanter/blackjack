@@ -87,3 +87,16 @@ func (hand *Hand) String() string {
 
 	return strings.Join(cards, "  ") + fmt.Sprintf(" total: %v lock: %v", hand.Total(), hand.IsLocked())
 }
+
+func (hand *Hand) Clone() *Hand {
+	if hand == nil {
+		return nil
+	}
+
+	return &Hand{
+		Cards: hand.Cards,
+		Bet:   hand.Bet,
+
+		locked: hand.locked,
+	}
+}

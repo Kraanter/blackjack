@@ -1,6 +1,7 @@
 package manager_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/kraanter/blackjack/pkg/blackjack"
@@ -29,13 +30,13 @@ func TestManagedPlayerCanPlayFullGame(t *testing.T) {
 		player.Stand()
 	}
 
-	player.Game.Start()
+	player.Game.Start(context.TODO())
 	err := player.Bet(10)
 	if err != nil {
 		t.Fatalf("Error while betting: %v", err)
 	}
 
-	for player.Game.GameState != blackjack.NoState {
+	for player.Game.GameState.Get() != blackjack.NoState {
 	}
 
 	_, err = player.Leave()
