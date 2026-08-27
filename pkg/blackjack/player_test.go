@@ -48,3 +48,21 @@ func TestPlayerDestroyReturnsBalance(t *testing.T) {
 		t.Fatalf(`player.Destory() = %v, want match for %v`, balance, want)
 	}
 }
+
+func TestPlayerHasNoActiveHandAt21OrBust(t *testing.T) {
+	for _, cards := range [][]*Card{
+		{CreateCard(Ace, Hearts), CreateCard(King, Spades)},
+		{CreateCard(King, Hearts), CreateCard(Queen, Spades), CreateCard(Two, Clubs)},
+	} {
+		player := CreatePlayer(0, 10)
+		if err := player.placeBet(1); err != nil {
+			t.Fatal(err)
+		}
+		for _, card := range cards {
+			player.Hands[0].AddCard(card)
+		}
+		if hand := player.GetActiveHand(); hand != nil {
+			t.Fatalf("GetActiveHand() = %v, want nil", hand)
+		}
+	}
+}

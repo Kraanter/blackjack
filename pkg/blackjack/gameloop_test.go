@@ -11,6 +11,12 @@ import (
 
 func TestConcurrentStandOnlyAcceptsOneAction(t *testing.T) {
 	game := CreateGame()
+	game.shoe.cards = []*Card{
+		CreateCard(Four, Hearts),
+		CreateCard(Three, Hearts),
+		CreateCard(Five, Hearts),
+		CreateCard(Two, Hearts),
+	}
 	player := game.AddPlayerWithBalance(10)
 	if err := game.SetPlayerBet(player.PlayerNum, 1); err != nil {
 		t.Fatal(err)

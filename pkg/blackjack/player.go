@@ -61,7 +61,7 @@ func (p *Player) Destroy() uint {
 
 func (p *Player) GetActiveHand() *Hand {
 	for _, hand := range p.Hands {
-		if !hand.locked {
+		if !hand.IsLocked() {
 			return hand
 		}
 	}

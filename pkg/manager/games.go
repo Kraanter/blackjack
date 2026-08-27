@@ -79,8 +79,11 @@ func (m *Manager) addGameWithID(id GameId, game *ManagedGame) bool {
 }
 
 func (m *Manager) RemoveGame(id GameId) bool {
-	game, err := m.GetGameWithId(id)
-	if err != nil {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	game := m.gameMap[id]
+	if game == nil {
 		return false
 	}
 
@@ -88,8 +91,6 @@ func (m *Manager) RemoveGame(id GameId) bool {
 		return false
 	}
 
-	m.mu.Lock()
-	defer m.mu.Unlock()
 	delete(m.gameMap, id)
 	return true
 }

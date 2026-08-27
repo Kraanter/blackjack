@@ -135,8 +135,10 @@ func (p *ManagedPlayer) Leave() (balance uint, err error) {
 }
 
 func (p *Manager) JoinGame(balance uint, gameId GameId) *ManagedPlayer {
-	game, _ := p.GetGameWithId(gameId)
+	p.mu.RLock()
+	game := p.gameMap[gameId]
 	if game == nil {
+		p.mu.RUnlock()
 		return nil
 	}
 
@@ -147,6 +149,7 @@ func (p *Manager) JoinGame(balance uint, gameId GameId) *ManagedPlayer {
 	game.mu.Lock()
 	game.Players[manPlayer.Player.PlayerNum] = manPlayer
 	game.mu.Unlock()
+	p.mu.RUnlock()
 
 	return manPlayer
 }

@@ -1,6 +1,7 @@
 package manager_test
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/kraanter/blackjack/pkg/manager"
@@ -23,6 +24,36 @@ func TestManagerGetJoinableGameReturnsNewGameIfEmpty(t *testing.T) {
 	want := uint(1)
 	if gameCount != want {
 		t.Fatalf("GetGameCount() = %v, want gamecount to be %v", gameCount, want)
+	}
+}
+
+func TestJoinGameIsNotRemovedConcurrently(t *testing.T) {
+	man := manager.CreateManager(nil)
+	id, _ := man.GetJoinableGame()
+
+	var start sync.WaitGroup
+	start.Add(1)
+	var done sync.WaitGroup
+	done.Add(2)
+	var player *manager.ManagedPlayer
+	go func() {
+		defer done.Done()
+		start.Wait()
+		player = man.JoinGame(100, id)
+	}()
+	go func() {
+		defer done.Done()
+		start.Wait()
+		man.RemoveGame(id)
+	}()
+	start.Done()
+	done.Wait()
+
+	if player == nil {
+		return
+	}
+	if _, err := man.GetGameWithId(id); err != nil {
+		t.Fatal("joined player belongs to a removed game")
 	}
 }
 

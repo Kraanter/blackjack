@@ -110,7 +110,8 @@ func playerUpdateHandler(user *users.AuthUser) func(game *blackjack.GameSnapshot
 		event string
 		data  []byte
 	}
-	updates := make(chan update, 1)
+	// A full one-deck dealer draw burst fits in the queue instead of being coalesced.
+	updates := make(chan update, 52)
 	done := user.WriteContext().Done()
 
 	go func() {

@@ -42,10 +42,14 @@
         function split() {
             fetch('/split', {method: "PATCH"})
         }
-        function leave() {
+        async function leave() {
             if (eventSource) {
                 eventSource.close()
                 eventSource = undefined
+            }
+            if (playerId) {
+                await fetch('/leave', {method: "DELETE"})
+                playerId = undefined
             }
         }
 
@@ -53,45 +57,41 @@
         var turnId;
         var eventSource;
 
-        function connect() {
-            leave()
+        async function connect() {
+            await leave()
+            const response = await fetch('/join', {method: "POST"})
+            if (!response.ok) return
+            playerId = (await response.json()).player.playerNum
 
-            fetch('/join', {method: "POST"}).then(() => {
-                eventSource = new EventSource('/gamestate?sse', {withCredentials: false});
-                eventSource.addEventListener("initial", function (event) {
-                    const dataElement = document.getElementById('sse-initial');
-                    dataElement.innerHTML += "initial: " + event.data + '<br>';
-                    const data = JSON.parse(event.data)
-                    console.log("inital", data)
-                    playerId = data.player.player.playerNum
-                    updatePlayerTurn(data.player.game["current-turn"])
-                    updateBalance(data.player.game.players[playerId].balance)
-                    showHands(data.player.game.players[playerId].hands, 'player-cards')
-                    if (data.player.game.dealer.length === 1) {
-                        data.player.game.dealer.push("X")
-                    }
-                    showHands([data.player.game.dealer], 'dealer-cards')
-                });
+            eventSource = new EventSource('/gamestate?sse', {withCredentials: false});
+            eventSource.addEventListener("initial", function (event) {
+                const dataElement = document.getElementById('sse-initial');
+                dataElement.innerHTML += "initial: " + event.data + '<br>';
+                showGame(JSON.parse(event.data))
+            });
 
-                eventSource.addEventListener("update", function (event) {
-                    const dataElement = document.getElementById('sse-data');
-                    dataElement.innerHTML += event.data + '<br>';
+            eventSource.addEventListener("update", function (event) {
+                const dataElement = document.getElementById('sse-data');
+                dataElement.innerHTML += event.data + '<br>';
+                showGame(JSON.parse(event.data))
+            });
 
-                    const data = JSON.parse(event.data)
-                    console.log('update', data, playerId)
-                    updatePlayerTurn(data["current-turn"])
-                    updateBalance(data.players[playerId].balance)
-                    showHands(data.players[playerId].hands, 'player-cards')
-                    if (data.dealer?.cards.length === 1) {
-                        data.dealer.cards.push("X")
-                    }
-                    showHands([data.dealer], 'dealer-cards')
-                });
-
-                eventSource.addEventListener("close", function (event) {
-                    eventSource.close()
-                })
+            eventSource.addEventListener("close", function () {
+                eventSource.close()
             })
+        }
+
+        function showGame(game) {
+            const player = game.players[playerId]
+            if (!player) return
+
+            updatePlayerTurn(game["current-turn"])
+            updateBalance(player.balance)
+            showHands(player.hands, 'player-cards')
+
+            const dealer = game.dealer
+            const cards = dealer?.cards || []
+            showHands([{...dealer, cards: cards.length === 1 ? [...cards, "X"] : cards}], 'dealer-cards')
         }
 
         setInterval(() => {
