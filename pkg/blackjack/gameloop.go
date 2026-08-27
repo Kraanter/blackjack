@@ -19,6 +19,12 @@ const (
 var NoPlayersInGameError = fmt.Errorf("Game does not have any players")
 
 func (b *BlackjackGame) Initialize() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.initialize()
+}
+
+func (b *BlackjackGame) initialize() {
 	if b.GameState.Get() != NoState {
 		return
 	}
@@ -32,23 +38,25 @@ func (b *BlackjackGame) Initialize() {
 // Then the gameplay loop is managed through the players
 // This ends when the game broadcasts that it goes into PlayingState
 func (b *BlackjackGame) Start(ctx context.Context) error {
+	_ = ctx
+	b.mu.Lock()
 	if b.GameState.Get() == NoState {
-		b.Initialize()
+		b.initialize()
 	}
+	state := b.GameState.Get()
+	b.mu.Unlock()
 
-	if b.GameState.Get() != BettingState {
+	if state != BettingState {
 		return b.createGameStateError(BettingState)
 	}
 
-	if err := b.WaitUntilBettingFinished(ctx); err != nil {
-		return err
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if len(b.PlayerMap) == 0 || len(b.GetPlayersWihoutBets()) > 0 {
+		return nil
 	}
 
-	if len(b.PlayerMap) == 0 {
-		return NoPlayersInGameError
-	}
-
-	b.DealInitialCards()
+	b.dealInitialCards()
 	b.GameState.Set(PlayingState)
 	b.gameloopTick()
 
@@ -65,6 +73,12 @@ func (b *BlackjackGame) WaitUntilBettingFinished(ctx context.Context) error {
 }
 
 func (b *BlackjackGame) DealInitialCards() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.dealInitialCards()
+}
+
+func (b *BlackjackGame) dealInitialCards() {
 	if b.GameState.Get() == PlayingState {
 		return
 	}
@@ -90,6 +104,8 @@ func (b *BlackjackGame) DealInitialCards() {
 // Returns false if game is not in state for player to receive card
 // Returns error if any other reason like player could not be found
 func (game *BlackjackGame) PlayerHit(playerNum PlayerId) (bool, error) {
+	game.mu.Lock()
+	defer game.mu.Unlock()
 	if game.GameState.Get() != PlayingState {
 		return false, game.createGameStateError(PlayingState)
 	}
@@ -98,7 +114,7 @@ func (game *BlackjackGame) PlayerHit(playerNum PlayerId) (bool, error) {
 		return false, WrongGameStateError
 	}
 
-	player, ok := game.GetPlayer(playerNum)
+	player, ok := game.getPlayer(playerNum)
 	if !ok {
 		return false, PlayerNotFoundError
 	}
@@ -113,11 +129,13 @@ func (game *BlackjackGame) PlayerHit(playerNum PlayerId) (bool, error) {
 }
 
 func (game *BlackjackGame) PlayerStand(playerNum PlayerId) error {
+	game.mu.Lock()
+	defer game.mu.Unlock()
 	if isDealer, num := game.nextPlayersTurn(); isDealer || num != playerNum {
 		return WrongGameStateError
 	}
 
-	player, ok := game.GetPlayer(playerNum)
+	player, ok := game.getPlayer(playerNum)
 	if !ok {
 		return PlayerNotFoundError
 	}
@@ -129,11 +147,13 @@ func (game *BlackjackGame) PlayerStand(playerNum PlayerId) error {
 }
 
 func (game *BlackjackGame) PlayerSplit(playerNum PlayerId) error {
+	game.mu.Lock()
+	defer game.mu.Unlock()
 	if isDealer, num := game.nextPlayersTurn(); isDealer || num != playerNum {
 		return WrongGameStateError
 	}
 
-	player, ok := game.GetPlayer(playerNum)
+	player, ok := game.getPlayer(playerNum)
 	if !ok {
 		return PlayerNotFoundError
 	}
@@ -167,6 +187,12 @@ func (game *BlackjackGame) PlayerSplit(playerNum PlayerId) error {
 }
 
 func (game *BlackjackGame) DealerTurn() error {
+	game.mu.Lock()
+	defer game.mu.Unlock()
+	return game.dealerTurn()
+}
+
+func (game *BlackjackGame) dealerTurn() error {
 	if game.GameState.Get() != DealerState {
 		return game.createGameStateError(DealerState)
 	}

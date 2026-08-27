@@ -4,9 +4,43 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"sync"
 	"testing"
 	"time"
 )
+
+func TestConcurrentStandOnlyAcceptsOneAction(t *testing.T) {
+	game := CreateGame()
+	player := game.AddPlayerWithBalance(10)
+	if err := game.SetPlayerBet(player.PlayerNum, 1); err != nil {
+		t.Fatal(err)
+	}
+	if err := game.Start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+
+	var wg sync.WaitGroup
+	errs := make(chan error, 2)
+	for range 2 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			errs <- game.PlayerStand(player.PlayerNum)
+		}()
+	}
+	wg.Wait()
+	close(errs)
+
+	successes := 0
+	for err := range errs {
+		if err == nil {
+			successes++
+		}
+	}
+	if successes != 1 {
+		t.Fatalf("expected one accepted stand, got %d", successes)
+	}
+}
 
 func TestGameLoop100_000Rounds(t *testing.T) {
 	log := ""
@@ -22,14 +56,14 @@ func TestGameLoop100_000Rounds(t *testing.T) {
 		gameFinishedContext, testFinished := context.WithTimeout(context.Background(), 200*time.Second)
 		defer testFinished()
 
-		game.OnGameUpdate = func(game *BlackjackGame) {
-			log += fmt.Sprintf("\n---\ngame_update: %v\n\nplayers:\n", game.GameState.Get())
+		game.OnGameUpdate = func(game *GameSnapshot) {
+			log += fmt.Sprintf("\n---\ngame_update: %v\n\nplayers:\n", game.GameState)
 
 			for _, player := range players {
 				log += fmt.Sprintln(player.String())
 			}
 
-			log += fmt.Sprintln("Dealer: ", game.Dealer.Get().String())
+			log += fmt.Sprintln("Dealer: ", game.Dealer.String())
 		}
 
 		game.OnGameFinished = func(payout map[PlayerId]uint) { testFinished() }
@@ -86,12 +120,12 @@ func playHand(t *testing.T, playerHand, dealerHand *Hand) (*BlackjackGame, strin
 
 	log := ""
 	defer print(log)
-	game.OnGameUpdate = func(game *BlackjackGame) {
-		log += fmt.Sprintf("\n---\ngame_update: %v\n\nplayers:\n", game.GameState.Get())
+	game.OnGameUpdate = func(game *GameSnapshot) {
+		log += fmt.Sprintf("\n---\ngame_update: %v\n\nplayers:\n", game.GameState)
 
 		log += fmt.Sprintln(player.String())
 
-		log += fmt.Sprintln("Dealer: ", game.Dealer.Get().String())
+		log += fmt.Sprintln("Dealer: ", game.Dealer.String())
 	}
 
 	player.Hands = []*Hand{playerHand}

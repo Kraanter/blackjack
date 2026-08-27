@@ -2,11 +2,13 @@ package manager
 
 import (
 	"context"
+	"sync"
 
 	"github.com/kraanter/blackjack/pkg/blackjack"
 )
 
 type ManagedGame struct {
+	mu            sync.RWMutex
 	blackjackGame *blackjack.BlackjackGame
 	// TODO: Maybe player names
 	Players     map[blackjack.PlayerId]*ManagedPlayer
@@ -26,12 +28,9 @@ func createManagedGame(ctx context.Context) *ManagedGame {
 	}
 
 	blackjackGame.OnGameUpdate = createGameUpdateHandler(manGame)
-	blackjackGame.OnGameFinished = func(m map[blackjack.PlayerId]uint) {
-		go blackjackGame.Start(manGame.gameContext)
+	blackjackGame.OnGameFinished = func(map[blackjack.PlayerId]uint) {
+		blackjackGame.Initialize()
 	}
-
-	go blackjackGame.Start(manGame.gameContext)
-
 	return manGame
 }
 

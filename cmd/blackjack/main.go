@@ -17,16 +17,16 @@ func main() {
 	players = append(players, game.AddPlayerWithBalance(10))
 	players = append(players, game.AddPlayerWithBalance(10))
 
-	game.OnGameUpdate = func(game *blackjack.BlackjackGame) {
+	game.OnGameUpdate = func(game *blackjack.GameSnapshot) {
 		printMutex.Lock()
 		defer printMutex.Unlock()
-		fmt.Printf("\n---\ngame_update: %v\n\nplayers: \n", game.GameState.Get())
+		fmt.Printf("\n---\ngame_update: %v\n\nplayers: \n", game.GameState)
 
 		for _, player := range players {
 			fmt.Println(player.String())
 		}
 
-		fmt.Println("Dealer: ", game.Dealer.Get().String())
+		fmt.Println("Dealer: ", game.Dealer.String())
 	}
 	game.OnPlayerTurn = func(pi blackjack.PlayerId) {
 		game.PlayerHit(pi)

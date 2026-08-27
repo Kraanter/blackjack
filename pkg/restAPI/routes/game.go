@@ -2,10 +2,9 @@ package routes
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 	"net/http"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/kraanter/blackjack/pkg/blackjack"
@@ -77,7 +76,7 @@ func gameStateHandler(w http.ResponseWriter, r *http.Request) {
 	isSSE := r.URL.Query().Has("sse")
 
 	if !isSSE {
-		writeStructToResponse(w, user.Player.Game, http.StatusOK)
+		writeStructToResponse(w, user.Player.Snapshot(), http.StatusOK)
 		return
 	}
 
@@ -92,30 +91,48 @@ func gameStateHandler(w http.ResponseWriter, r *http.Request) {
 	if oldContext != nil {
 		<-oldContext.Done()
 	}
-	user.Player.OnGameUpdate = playerUpdateHandler(user)
+	user.Player.SetGameUpdateHandler(playerUpdateHandler(user))
 
 	select {
 	case <-r.Context().Done():
-		user.Player.OnGameUpdate = nil
+		user.Player.SetGameUpdateHandler(nil)
 	case <-user.WriteContext().Done():
 		sendSSEvent(w, "close", nil)
 	case <-user.Ctx.Done():
-		user.Player.OnGameUpdate = nil
+		user.Player.SetGameUpdateHandler(nil)
 	}
 }
 
 var TimeBetweenGameUpdates time.Duration = 100 * time.Millisecond
 
-func playerUpdateHandler(user *users.AuthUser) func(game *blackjack.BlackjackGame) {
-	var mutex sync.Mutex
+func playerUpdateHandler(user *users.AuthUser) func(game *blackjack.GameSnapshot) {
+	type update struct {
+		event string
+		data  []byte
+	}
+	updates := make(chan update, 1)
+	done := user.WriteContext().Done()
 
-	go sendSSEvent(user.GetUserWriter(), "initial", user)
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case update := <-updates:
+				sendSSEvent(user.GetUserWriter(), update.event, json.RawMessage(update.data))
+				time.Sleep(TimeBetweenGameUpdates)
+			}
+		}
+	}()
+	updates <- update{"initial", structToString(user.Player.Snapshot())}
 
-	return func(game *blackjack.BlackjackGame) {
-		mutex.Lock()
-		defer mutex.Unlock()
-		fmt.Printf("game: %v\n", game)
-		sendSSEvent(user.GetUserWriter(), "update", game)
-		time.Sleep(TimeBetweenGameUpdates)
+	return func(game *blackjack.GameSnapshot) {
+		update := update{"update", structToString(game)}
+		select {
+		case updates <- update:
+		default:
+			<-updates
+			updates <- update
+		}
 	}
 }

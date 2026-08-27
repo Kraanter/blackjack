@@ -14,14 +14,14 @@ func main() {
 	player := man.JoinRandomGame(10)
 	var printMutex sync.Mutex
 
-	player.Game.OnGameUpdate = func(game *blackjack.BlackjackGame) {
+	player.Game.OnGameUpdate = func(game *blackjack.GameSnapshot) {
 		printMutex.Lock()
 		defer printMutex.Unlock()
-		fmt.Printf("\n---\ngame_update: %v\n\nplayers: \n", game.GameState.Get())
+		fmt.Printf("\n---\ngame_update: %v\n\nplayers: \n", game.GameState)
 
 		fmt.Println(player.String())
 
-		fmt.Println("Dealer: ", game.Dealer.Get().String())
+		fmt.Println("Dealer: ", game.Dealer.String())
 	}
 	player.Game.OnPlayerTurn = func(pi blackjack.PlayerId) {
 		player.Hit()

@@ -20,13 +20,12 @@ type BlackjackGame struct {
 	hiddenDealerCard *util.Cell[*Card]
 	playerCount      uint
 	shoe             Shoe
-	playerMapMutex   sync.Mutex
-	sendMutex        sync.Mutex
+	mu               sync.Mutex
 
 	bettingStateChannel chan (struct{})
 
 	OnPlayerTurn   func(PlayerId)          `json:"-"`
-	OnGameUpdate   func(*BlackjackGame)    `json:"-"`
+	OnGameUpdate   func(*GameSnapshot)     `json:"-"`
 	OnGameFinished func(map[PlayerId]uint) `json:"-"`
 }
 
@@ -42,12 +41,50 @@ func CreateGame() *BlackjackGame {
 		hiddenDealerCard:    util.New(hiddenCard),
 	}
 
-	game.CurrentTurn.After(func() { game.sendPlayerTurn(game.CurrentTurn.Get()) })
-	game.GameState.After(func() { game.sendGameUpdate() })
-
 	game.Initialize()
 
 	return &game
+}
+
+// GameSnapshot is a copy of game state that can safely outlive a game update.
+type GameSnapshot struct {
+	Dealer      *Hand                `json:"dealer"`
+	PlayerMap   map[PlayerId]*Player `json:"players"`
+	GameState   GameState            `json:"gameState"`
+	CurrentTurn PlayerId             `json:"current-turn"`
+}
+
+func (game *BlackjackGame) Snapshot() *GameSnapshot {
+	game.mu.Lock()
+	defer game.mu.Unlock()
+	return game.snapshot()
+}
+
+func (game *BlackjackGame) snapshot() *GameSnapshot {
+	snapshot := &GameSnapshot{
+		Dealer:      cloneHand(game.Dealer.Get()),
+		PlayerMap:   make(map[PlayerId]*Player, len(game.PlayerMap)),
+		GameState:   game.GameState.Get(),
+		CurrentTurn: game.CurrentTurn.Get(),
+	}
+	for id, player := range game.PlayerMap {
+		copy := *player
+		copy.Hands = make([]*Hand, len(player.Hands))
+		for i, hand := range player.Hands {
+			copy.Hands[i] = cloneHand(hand)
+		}
+		snapshot.PlayerMap[id] = &copy
+	}
+	return snapshot
+}
+
+func cloneHand(hand *Hand) *Hand {
+	if hand == nil {
+		return nil
+	}
+	copy := *hand
+	copy.Cards = append([]*Card(nil), hand.Cards...)
+	return &copy
 }
 
 func (game *BlackjackGame) createGameStateError(expected GameState) error {
@@ -55,12 +92,12 @@ func (game *BlackjackGame) createGameStateError(expected GameState) error {
 }
 
 func (game *BlackjackGame) AddPlayerWithBalance(balance PlayerId) *Player {
+	game.mu.Lock()
+	defer game.mu.Unlock()
 	game.playerCount++
 	newPlayer := CreatePlayer(game.playerCount, balance)
 
-	game.playerMapMutex.Lock()
 	game.PlayerMap[game.playerCount] = newPlayer
-	game.playerMapMutex.Unlock()
 
 	game.sendGameUpdate()
 
@@ -68,11 +105,13 @@ func (game *BlackjackGame) AddPlayerWithBalance(balance PlayerId) *Player {
 }
 
 func (game *BlackjackGame) SetPlayerBet(playerId PlayerId, betAmount uint) error {
+	game.mu.Lock()
+	defer game.mu.Unlock()
 	if game.GameState.Get() != BettingState {
 		return game.createGameStateError(BettingState)
 	}
 
-	player, ok := game.GetPlayer(playerId)
+	player, ok := game.getPlayer(playerId)
 	if !ok {
 		return PlayerNotFoundError
 	}
@@ -88,11 +127,13 @@ func (game *BlackjackGame) SetPlayerBet(playerId PlayerId, betAmount uint) error
 }
 
 func (game *BlackjackGame) SkipPlayerBet(playerId PlayerId) error {
+	game.mu.Lock()
+	defer game.mu.Unlock()
 	if game.GameState.Get() != BettingState {
 		return game.createGameStateError(BettingState)
 	}
 
-	player, ok := game.GetPlayer(playerId)
+	player, ok := game.getPlayer(playerId)
 	if !ok {
 		return PlayerNotFoundError
 	}
@@ -104,9 +145,10 @@ func (game *BlackjackGame) SkipPlayerBet(playerId PlayerId) error {
 	return nil
 }
 
+// sendGameUpdate must be called while game.mu is held.
 func (game *BlackjackGame) sendGameUpdate() {
 	if game.OnGameUpdate != nil {
-		game.OnGameUpdate(game)
+		game.OnGameUpdate(game.snapshot())
 	}
 }
 
@@ -118,15 +160,16 @@ func (game *BlackjackGame) gameloopTick() {
 		dealer, nextNum := game.nextPlayersTurn()
 		if dealer {
 			game.GameState.Set(DealerState)
-			err := game.DealerTurn()
+			err := game.dealerTurn()
 			if err != nil {
 				panic(fmt.Sprintf("Error during dealer turn: %v", err))
 			}
 		} else if nextNum != game.CurrentTurn.Get() {
 			game.CurrentTurn.Set(nextNum)
+			game.sendPlayerTurn(nextNum)
 		}
 	case BettingState:
-		if len(game.GetPlayersWihoutBets()) == 0 {
+		if len(game.PlayerMap) > 0 && len(game.GetPlayersWihoutBets()) == 0 {
 			select {
 			case <-game.bettingStateChannel:
 			default:
@@ -147,9 +190,9 @@ func (game *BlackjackGame) sendPlayerTurn(playerId PlayerId) {
 var PlayerNotFoundError error = fmt.Errorf("Could not find player")
 
 func (game *BlackjackGame) RemovePlayer(playerNum PlayerId) (uint, error) {
+	game.mu.Lock()
+	defer game.mu.Unlock()
 	balance, err := func() (uint, error) {
-		game.playerMapMutex.Lock()
-		defer game.playerMapMutex.Unlock()
 		playerToDelete, ok := game.PlayerMap[playerNum]
 		if !ok {
 			return 0, PlayerNotFoundError
@@ -168,8 +211,12 @@ func (game *BlackjackGame) RemovePlayer(playerNum PlayerId) (uint, error) {
 }
 
 func (game *BlackjackGame) GetPlayer(playerNum PlayerId) (*Player, bool) {
-	game.playerMapMutex.Lock()
-	defer game.playerMapMutex.Unlock()
+	game.mu.Lock()
+	defer game.mu.Unlock()
+	return game.getPlayer(playerNum)
+}
+
+func (game *BlackjackGame) getPlayer(playerNum PlayerId) (*Player, bool) {
 	player, ok := game.PlayerMap[playerNum]
 
 	return player, ok
@@ -276,10 +323,18 @@ func isBlackjack(hand *Hand) bool {
 }
 
 func (game *BlackjackGame) GetPlayerCount() uint {
+	game.mu.Lock()
+	defer game.mu.Unlock()
 	return uint(len(game.PlayerMap))
 }
 
 func (game *BlackjackGame) String() string {
+	game.mu.Lock()
+	defer game.mu.Unlock()
+	return game.string()
+}
+
+func (game *BlackjackGame) string() string {
 	dealerTurn, nextPlayer := game.nextPlayersTurn()
 	var nextString string
 	if dealerTurn {
@@ -293,13 +348,10 @@ func (game *BlackjackGame) String() string {
 		playerStrings += "  " + v.String() + "\n"
 	})
 
-	return fmt.Sprintf("GameState: %v Playercount: %v NextPlayer: %v\nDealer: %v hidden: %v\nHands:\n%v", game.GameState.Get(), game.GetPlayerCount(), nextString, game.Dealer.Get().String(), game.hiddenDealerCard.Get(), playerStrings)
+	return fmt.Sprintf("GameState: %v Playercount: %v NextPlayer: %v\nDealer: %v hidden: %v\nHands:\n%v", game.GameState.Get(), len(game.PlayerMap), nextString, game.Dealer.Get().String(), game.hiddenDealerCard.Get(), playerStrings)
 }
 
 func (b *BlackjackGame) forEachPlayer(fn func(id PlayerId, player *Player)) {
-	b.playerMapMutex.Lock()
-	defer b.playerMapMutex.Unlock()
-
 	for k, v := range b.PlayerMap {
 		fn(k, v)
 	}

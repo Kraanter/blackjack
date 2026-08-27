@@ -33,12 +33,16 @@ func AuthMiddleware(noAuth bool) (isAllowed func(res http.ResponseWriter, req *h
 func GetUserFromReq(req *http.Request) *AuthUser {
 	for _, cookie := range req.Cookies() {
 		if cookie.Name == CookiePlayerIdKey {
+			userMapMu.RLock()
 			cookieval, ok := UserMap[cookie.Value]
+			userMapMu.RUnlock()
 			if !ok {
 				continue
 			}
 
+			cookieval.mu.Lock()
 			cookieval.lastSeen = time.Now()
+			cookieval.mu.Unlock()
 
 			return cookieval
 		}

@@ -6,7 +6,7 @@ import (
 
 func ensureUserActive(user *AuthUser) {
 	inactiveTimer := time.NewTimer(5 * time.Second) // Timer for inactivity
-	defer inactiveTimer.Stop()                       // Stop the timer when done
+	defer inactiveTimer.Stop()                      // Stop the timer when done
 
 	for {
 		select {
@@ -20,7 +20,10 @@ func ensureUserActive(user *AuthUser) {
 			return
 		case <-time.After(time.Second):
 			// Reset the timer if user is active
-			if time.Since(user.lastSeen) < 5*time.Second || user.writerCancel != nil {
+			user.mu.RLock()
+			active := time.Since(user.lastSeen) < 5*time.Second || user.writerCancel != nil
+			user.mu.RUnlock()
+			if active {
 				if !inactiveTimer.Stop() {
 					<-inactiveTimer.C // Drain the timer channel
 				}

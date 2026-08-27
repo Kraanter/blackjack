@@ -1,10 +1,12 @@
 package manager
 
 import (
+	"sync"
 	"time"
 )
 
 type Manager struct {
+	mu       sync.RWMutex
 	gameMap  map[GameId]*ManagedGame
 	Settings *Settings
 }
@@ -34,7 +36,13 @@ func (m *Manager) cleanupRoutine() {
 }
 
 func (m *Manager) cleanupEmptyGames() {
+	m.mu.RLock()
+	games := make(map[GameId]*ManagedGame, len(m.gameMap))
 	for id, game := range m.gameMap {
+		games[id] = game
+	}
+	m.mu.RUnlock()
+	for id, game := range games {
 		if game.GetPlayerCount() == 0 {
 			m.RemoveGame(id)
 		}
@@ -42,5 +50,7 @@ func (m *Manager) cleanupEmptyGames() {
 }
 
 func (m *Manager) GetGameCount() uint {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return uint(len(m.gameMap))
 }
