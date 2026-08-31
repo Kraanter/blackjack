@@ -1,9 +1,9 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/kraanter/blackjack/pkg/blackjack"
 )
@@ -17,7 +17,7 @@ func main() {
 	players = append(players, game.AddPlayerWithBalance(10))
 	players = append(players, game.AddPlayerWithBalance(10))
 
-	game.OnGameUpdate = func(game *blackjack.BlackjackGame) {
+	game.OnGameUpdate = func(game *blackjack.GameSnapshot) {
 		printMutex.Lock()
 		defer printMutex.Unlock()
 		fmt.Printf("\n---\ngame_update: %v\n\nplayers: \n", game.GameState)
@@ -33,20 +33,17 @@ func main() {
 		game.PlayerStand(pi)
 	}
 
-	go func() {
-		time.Sleep(10 * time.Millisecond)
-		err := game.SetPlayerBet(players[0].PlayerNum, 5)
-		err = game.SkipPlayerBet(players[1].PlayerNum)
-		err = game.SetPlayerBet(players[2].PlayerNum, 2)
-		if err != nil {
-			println(err.Error())
-		}
-	}()
+	err := game.SetPlayerBet(players[0].PlayerNum, 5)
+	err = game.SkipPlayerBet(players[1].PlayerNum)
+	err = game.SetPlayerBet(players[2].PlayerNum, 2)
+	if err != nil {
+		println(err.Error())
+	}
 
-	game.Start()
+	game.Start(context.Background())
 
-	for game.GameState != blackjack.NoState {
+	for game.GameState.Get() != blackjack.NoState {
 	}
 	printMutex.Lock()
-	printMutex.Unlock()
+	defer printMutex.Unlock()
 }

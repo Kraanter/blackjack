@@ -1,0 +1,280 @@
+openapi: 3.1.0
+info:
+  title: Blackjack API
+  version: 1.0.0
+  description: |
+    HTTP API for joining and playing a blackjack game. Authenticate subsequent
+    requests with the PlayerId cookie returned by POST /join.
+servers:
+  - url: https://localhost:42069
+paths:
+  /join:
+    post:
+      summary: Join a game
+      description: Joins the game identified by code, or a joinable game when code is omitted or invalid.
+      parameters:
+        - $ref: '#/components/parameters/GameCode'
+      responses:
+        '201':
+          description: Player joined. The PlayerId cookie authenticates later requests.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: Secure, HTTP-only PlayerId cookie.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagedPlayer'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /leave:
+    delete:
+      summary: Leave the current game
+      security:
+        - PlayerCookie: []
+      responses:
+        '200':
+          description: Leave requested.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /auth:
+    get:
+      summary: Get the authenticated player session
+      security:
+        - PlayerCookie: []
+      responses:
+        '200':
+          description: Authenticated session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUser'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /gamestate:
+    get:
+      summary: Get the current game snapshot or subscribe to updates
+      security:
+        - PlayerCookie: []
+      parameters:
+        - name: sse
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: When present, opens an SSE stream instead of returning JSON.
+      responses:
+        '200':
+          description: Current snapshot, or an SSE stream when sse is present.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameSnapshot'
+            text/event-stream:
+              schema:
+                type: string
+              examples:
+                update:
+                  value: |
+                    id: update
+                    event: update
+                    data: {"gameState":3,"current-turn":1,"dealer":{"cards":[],"bet":0},"players":{}}
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /hand:
+    get:
+      summary: Get the authenticated player's hands
+      security:
+        - PlayerCookie: []
+      responses:
+        '200':
+          description: Current hands.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Hand'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      summary: Place a bet
+      description: Starts the round automatically once every player has bet or skipped.
+      security:
+        - PlayerCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [bet-amount]
+              properties:
+                bet-amount:
+                  type: integer
+                  minimum: 1
+      responses:
+        '201':
+          description: Bet accepted.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Hand'
+        '402':
+          $ref: '#/components/responses/ActionRejected'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /hit:
+    patch:
+      summary: Draw a card for the current hand
+      security:
+        - PlayerCookie: []
+      responses:
+        '200':
+          description: Card action accepted.
+        '425':
+          $ref: '#/components/responses/ActionRejected'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /stand:
+    patch:
+      summary: Stand on the current hand
+      security:
+        - PlayerCookie: []
+      responses:
+        '200':
+          description: Stand accepted.
+        '425':
+          $ref: '#/components/responses/ActionRejected'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /split:
+    patch:
+      summary: Split the current matching pair
+      security:
+        - PlayerCookie: []
+      responses:
+        '200':
+          description: Split accepted.
+        '425':
+          $ref: '#/components/responses/ActionRejected'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+components:
+  securitySchemes:
+    PlayerCookie:
+      type: apiKey
+      in: cookie
+      name: PlayerId
+  parameters:
+    GameCode:
+      name: code
+      in: query
+      required: false
+      schema:
+        type: integer
+      description: Numeric game code.
+  responses:
+    Unauthorized:
+      description: Missing or invalid PlayerId cookie.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unprocessable:
+      description: No game could be joined.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ActionRejected:
+      description: The action is invalid for the current game state, turn, hand, or balance.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    AuthUser:
+      type: object
+      properties:
+        cookie:
+          type: string
+        player:
+          $ref: '#/components/schemas/ManagedPlayer'
+    ManagedPlayer:
+      type: object
+      properties:
+        player:
+          $ref: '#/components/schemas/Player'
+        game-id:
+          type: integer
+        game:
+          $ref: '#/components/schemas/GameSnapshot'
+    GameSnapshot:
+      type: object
+      required: [dealer, players, gameState, current-turn]
+      properties:
+        dealer:
+          $ref: '#/components/schemas/Hand'
+          nullable: true
+        players:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Player'
+        gameState:
+          type: integer
+          enum: [0, 1, 2, 3, 4, 5]
+          description: NoState, BettingState, DealingState, PlayingState, DealerState, or PayoutState.
+        current-turn:
+          type: integer
+          minimum: 0
+    Player:
+      type: object
+      required: [balance, hands, playerNum]
+      properties:
+        balance:
+          type: integer
+          minimum: 0
+        hands:
+          type: array
+          items:
+            $ref: '#/components/schemas/Hand'
+        playerNum:
+          type: integer
+          minimum: 1
+    Hand:
+      type: object
+      required: [cards, bet]
+      properties:
+        cards:
+          type: array
+          items:
+            $ref: '#/components/schemas/Card'
+        bet:
+          type: integer
+          minimum: 0
+    Card:
+      type: object
+      required: [face, suit]
+      properties:
+        face:
+          type: integer
+          minimum: 0
+          maximum: 12
+          description: "Ace through King: Ace=0, Two=1, ..., Ten=9, Jack=10, Queen=11, King=12."
+        suit:
+          type: integer
+          minimum: 0
+          maximum: 3
+          description: Hearts=0, Diamonds=1, Clubs=2, Spades=3.
+    Error:
+      type: object
+      required: [reason, code]
+      properties:
+        reason:
+          type: string
+        code:
+          type: integer

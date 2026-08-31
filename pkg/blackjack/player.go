@@ -5,10 +5,10 @@ import (
 )
 
 type Player struct {
-	Balance uint
+	Balance uint `json:"balance"`
 	// Nil if not playing in current round
-	Hands     []*Hand
-	PlayerNum uint
+	Hands     []*Hand `json:"hands"`
+	PlayerNum uint    `json:"playerNum"`
 
 	// True if player has made a choice for the current round
 	playing bool
@@ -27,7 +27,11 @@ var NotEnoughBalanceError = fmt.Errorf("Player wants to bet more than they have 
 var WrongGameStateError = fmt.Errorf("Game is in the wrong state")
 var NotHighEnoughBetError = fmt.Errorf("Bet needs to be higher to be valid")
 
-func (p *Player) PlaceBet(bet uint) error {
+func createGameStateError(expected, actual GameState) error {
+	return fmt.Errorf("%w: expected (%v) but is (%v)", WrongGameStateError, expected, actual)
+}
+
+func (p *Player) placeBet(bet uint) error {
 	if p.playing || len(p.Hands) != 0 {
 		return WrongGameStateError
 	}
@@ -57,7 +61,7 @@ func (p *Player) Destroy() uint {
 
 func (p *Player) GetActiveHand() *Hand {
 	for _, hand := range p.Hands {
-		if !hand.locked {
+		if !hand.IsLocked() {
 			return hand
 		}
 	}

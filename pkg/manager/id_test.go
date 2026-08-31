@@ -9,7 +9,7 @@ import (
 var loopCount = 100000000
 
 func TestRandomIdGeneratorLength1(t *testing.T) {
-	for _ = range loopCount {
+	for range loopCount {
 		id := manager.CreateRandomGameId(uint(1))
 		if id > 9 || id < 0 {
 			t.Fatalf("Generating random number with one digit should be one positive digit, was: %v", id)
@@ -19,7 +19,7 @@ func TestRandomIdGeneratorLength1(t *testing.T) {
 }
 
 func TestRandomIdGeneratorLength2(t *testing.T) {
-	for _ = range loopCount {
+	for range loopCount {
 		id := manager.CreateRandomGameId(uint(2))
 		if id > 99 || id < 10 {
 			t.Fatalf("Generating random number with two digits should be two positive digits, was: %v", id)
@@ -29,7 +29,7 @@ func TestRandomIdGeneratorLength2(t *testing.T) {
 }
 
 func TestRandomIdGeneratorLength3(t *testing.T) {
-	for _ = range loopCount {
+	for range loopCount {
 		id := manager.CreateRandomGameId(uint(3))
 		if id > 999 || id < 100 {
 			t.Fatalf("Generating random number with three digits should be tree positive digits, was: %v", id)
@@ -39,7 +39,7 @@ func TestRandomIdGeneratorLength3(t *testing.T) {
 }
 
 func TestRandomIdGeneratorLength4(t *testing.T) {
-	for _ = range loopCount {
+	for range loopCount {
 		id := manager.CreateRandomGameId(uint(4))
 		if id > 9999 || id < 1000 {
 			t.Fatalf("Generating random number with four digits should be four positive digits, was: %v", id)
@@ -49,7 +49,7 @@ func TestRandomIdGeneratorLength4(t *testing.T) {
 }
 
 func TestRandomIdGeneratorLength5(t *testing.T) {
-	for _ = range loopCount {
+	for range loopCount {
 		id := manager.CreateRandomGameId(uint(5))
 		if id > 99999 || id < 10000 {
 			t.Fatalf("Generating random number with five digits should be five positive digits, was: %v", id)
@@ -59,7 +59,7 @@ func TestRandomIdGeneratorLength5(t *testing.T) {
 }
 
 func TestRandomIdGeneratorLength6(t *testing.T) {
-	for _ = range loopCount {
+	for range loopCount {
 		id := manager.CreateRandomGameId(uint(6))
 		if id > 999999 || id < 100000 {
 			t.Fatalf("Generating random number with five digits should be six positive digits, was: %v", id)

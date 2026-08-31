@@ -6,8 +6,9 @@ import (
 )
 
 type Hand struct {
-	Cards []*Card
-	Bet   uint
+	Cards []*Card `json:"cards"`
+	Bet   uint    `json:"bet"`
+
 	// True if all cards have been dealed
 	locked bool
 }
@@ -46,6 +47,10 @@ func (hand *Hand) AddCard(card *Card) bool {
 		return false
 	}
 
+	if card == nil {
+		return false
+	}
+
 	hand.Cards = append(hand.Cards, card)
 	return true
 }
@@ -81,4 +86,17 @@ func (hand *Hand) String() string {
 	}
 
 	return strings.Join(cards, "  ") + fmt.Sprintf(" total: %v lock: %v", hand.Total(), hand.IsLocked())
+}
+
+func (hand *Hand) Clone() *Hand {
+	if hand == nil {
+		return nil
+	}
+
+	return &Hand{
+		Cards: hand.Cards,
+		Bet:   hand.Bet,
+
+		locked: hand.locked,
+	}
 }

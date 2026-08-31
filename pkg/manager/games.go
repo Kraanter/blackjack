@@ -8,9 +8,15 @@ import (
 )
 
 // Returns ID 0 if no game is found and game pointer will be nil
-func (m *Manager) GetJoinableGame() (GameId, *blackjack.BlackjackGame) {
+func (m *Manager) GetJoinableGame() (GameId, *ManagedGame) {
 	// Join a random game
+	m.mu.RLock()
+	games := make(map[GameId]*ManagedGame, len(m.gameMap))
 	for k, v := range m.gameMap {
+		games[k] = v
+	}
+	m.mu.RUnlock()
+	for k, v := range games {
 		if v.GetPlayerCount() < m.Settings.MinPlayerCount {
 			game, err := m.GetGameWithId(k)
 			if err != nil {
@@ -24,18 +30,20 @@ func (m *Manager) GetJoinableGame() (GameId, *blackjack.BlackjackGame) {
 	return m.createNewGame()
 }
 
-func (m *Manager) JoinRandomGame(ctx context.Context, balance uint) *ManagedPlayer {
+func (m *Manager) JoinRandomGame(balance uint) *ManagedPlayer {
 	gameId, _ := m.GetJoinableGame()
 	if gameId == 0 {
 		return nil
 	}
 
-	return m.JoinGame(ctx, balance, gameId)
+	return m.JoinGame(balance, gameId)
 }
 
 var GameNotFoundError = fmt.Errorf("Could not find Game")
 
-func (m *Manager) GetGameWithId(id GameId) (*blackjack.BlackjackGame, error) {
+func (m *Manager) GetGameWithId(id GameId) (*ManagedGame, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	game, ok := m.gameMap[id]
 
 	if !ok {
@@ -46,8 +54,8 @@ func (m *Manager) GetGameWithId(id GameId) (*blackjack.BlackjackGame, error) {
 
 }
 
-func (m *Manager) createNewGame() (GameId, *blackjack.BlackjackGame) {
-	newGame := blackjack.CreateGame()
+func (m *Manager) createNewGame() (GameId, *ManagedGame) {
+	newGame := createManagedGame(context.Background())
 	for {
 		gameId := CreateRandomGameId(m.Settings.IdLength)
 
@@ -57,7 +65,9 @@ func (m *Manager) createNewGame() (GameId, *blackjack.BlackjackGame) {
 	}
 }
 
-func (m *Manager) addGameWithID(id GameId, game *blackjack.BlackjackGame) bool {
+func (m *Manager) addGameWithID(id GameId, game *ManagedGame) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	_, ok := m.gameMap[id]
 	if ok {
 		return false
@@ -68,9 +78,12 @@ func (m *Manager) addGameWithID(id GameId, game *blackjack.BlackjackGame) bool {
 	return true
 }
 
-func (m *Manager) removeGame(id GameId) bool {
-	game, err := m.GetGameWithId(id)
-	if err != nil {
+func (m *Manager) RemoveGame(id GameId) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	game := m.gameMap[id]
+	if game == nil {
 		return false
 	}
 
@@ -80,4 +93,20 @@ func (m *Manager) removeGame(id GameId) bool {
 
 	delete(m.gameMap, id)
 	return true
+}
+
+func createGameUpdateHandler(manGame *ManagedGame) func(game *blackjack.GameSnapshot) {
+	return func(game *blackjack.GameSnapshot) {
+		manGame.mu.RLock()
+		handlers := make([]func(*blackjack.GameSnapshot), 0, len(manGame.Players))
+		for _, player := range manGame.Players {
+			if handler := player.gameUpdateHandler(); handler != nil {
+				handlers = append(handlers, handler)
+			}
+		}
+		manGame.mu.RUnlock()
+		for _, handler := range handlers {
+			handler(game)
+		}
+	}
 }

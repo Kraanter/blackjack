@@ -38,12 +38,6 @@
 
 # TO-DO
 
- - Blackjack detection after dealing cards (Player & Dealer)
- 	- Including payouts
- - Splitting hands
  - Database integration
  	- Database interface for playing along an ongoing game in the DB
 	- SQLite implementation
- - REST API
- 	- WebSocket for messages to the server
-	- SSE for updates in game state

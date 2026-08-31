@@ -1,9 +1,19 @@
 package main
 
 import (
+	"flag"
+	"time"
+
 	"github.com/kraanter/blackjack/pkg/restAPI"
 )
 
 func main() {
-	restapi.Start()
+	portPtr := flag.Int("port", 42069, "The port to run the server on")
+	flag.Parse()
+
+	settings := restapi.CreateDefaultServerSettings()
+	settings.Port = uint(*portPtr)
+	settings.TimeBetweenGameUpdates = 150 * time.Millisecond
+
+	restapi.Start(settings)
 }

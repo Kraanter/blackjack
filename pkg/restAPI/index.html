@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>SSE Example</title>
+</head>
+
+<body>
+    <button onclick="bet()">Bet</button>
+    <input type="number" id="betAmount" min="1" value="10">
+    <button onclick="leave()" id="leave">Leave</button>
+    <div id="controls" style="display: none;">
+        <button onclick="hit()">Hit</button>
+        <button onclick="stand()">Stand</button>
+        <button onclick="split()">Split</button>
+    </div>
+    <h2> Your cards (balance: <span id="balance"></span>) </h2>
+    <div id="player-cards"></div>
+    <h2> Dealer cards </h2>
+    <div id="dealer-cards"></div>
+
+    <h2> Data stream </h2>
+    <div id="sse-initial"></div>
+    <div id="sse-data"></div>
+
+    <script>
+        function getBetAmount() {
+            const value = document.getElementById("betAmount").value
+            console.log(value, +value)
+            return +value
+        }
+
+        function bet() {
+            fetch('/hand', {method: "POST", body: JSON.stringify({"bet-amount": getBetAmount()})})
+        }
+        function hit() {
+            fetch('/hit', {method: "PATCH"})
+        }
+        function stand() {
+            fetch('/stand', {method: "PATCH"})
+        }
+        function split() {
+            fetch('/split', {method: "PATCH"})
+        }
+        async function leave() {
+            if (eventSource) {
+                eventSource.close()
+                eventSource = undefined
+            }
+            if (playerId) {
+                await fetch('/leave', {method: "DELETE"})
+                playerId = undefined
+            }
+        }
+
+        var playerId;
+        var turnId;
+        var eventSource;
+
+        async function connect() {
+            await leave()
+            const response = await fetch('/join', {method: "POST"})
+            if (!response.ok) return
+            playerId = (await response.json()).player.playerNum
+
+            eventSource = new EventSource('/gamestate?sse', {withCredentials: false});
+            eventSource.addEventListener("initial", function (event) {
+                const dataElement = document.getElementById('sse-initial');
+                dataElement.innerHTML += "initial: " + event.data + '<br>';
+                showGame(JSON.parse(event.data))
+            });
+
+            eventSource.addEventListener("update", function (event) {
+                const dataElement = document.getElementById('sse-data');
+                dataElement.innerHTML += event.data + '<br>';
+                showGame(JSON.parse(event.data))
+            });
+
+            eventSource.addEventListener("close", function () {
+                eventSource.close()
+            })
+        }
+
+        function showGame(game) {
+            const player = game.players[playerId]
+            if (!player) return
+
+            updatePlayerTurn(game["current-turn"])
+            updateBalance(player.balance)
+            showHands(player.hands, 'player-cards')
+
+            const dealer = game.dealer
+            const cards = dealer?.cards || []
+            showHands([{...dealer, cards: cards.length === 1 ? [...cards, "X"] : cards}], 'dealer-cards')
+        }
+
+        setInterval(() => {
+            document.getElementById("leave").disabled = !(eventSource?.readyState === 1)
+        }, 1000)
+
+        connect()
+
+        function updateBalance(bal) {
+            document.getElementById("balance").innerHTML = bal
+        }
+
+        function updatePlayerTurn(newId) {
+            turnId = newId
+            const controls = document.getElementById("controls")
+            if (turnId == playerId) {
+                controls.style.display = "block"
+            } else {
+                controls.style.display = "none"
+            }
+        }
+
+        function showHands(hands, elementId) {
+            const cardsElement = document.getElementById(elementId);
+            cardsElement.innerHTML = ""
+            console.log("hands", hands)
+            for (hand of hands) {
+                if (!hand) continue
+                console.log("hand", hand)
+                let handStr = "";
+                for (card of hand.cards) {
+                    console.log("card", card)
+                    if (card === "X") {
+                        handStr += "X "
+                        continue
+                    }
+                    const cardEnum = card.face
+                    if (cardEnum < 0 || cardEnum > 12) return
+
+                    let cardToAdd;
+                    if (cardEnum == 0) cardToAdd = "A";
+                    else if (cardEnum < 10) cardToAdd = (cardEnum + 1).toString()
+                    else {
+                        switch (cardEnum) {
+                            case 10:
+                                cardToAdd = "J";
+                                break;
+                            case 11:
+                                cardToAdd = "Q";
+                                break;
+                            case 12:
+                                cardToAdd = "K";
+                                break;
+                        }
+                    }
+
+                    handStr += cardToAdd + " "
+                }
+                console.log("handStr", handStr)
+                cardsElement.innerHTML += handStr + '<br>';
+            }
+        }
+    </script>
+</body>
+
+</html>

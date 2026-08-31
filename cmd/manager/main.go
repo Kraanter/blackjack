@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/kraanter/blackjack/pkg/blackjack"
 	"github.com/kraanter/blackjack/pkg/manager"
@@ -12,10 +11,10 @@ import (
 
 func main() {
 	man := manager.CreateManager(nil)
-	player := man.JoinRandomGame(context.Background(), 10)
+	player := man.JoinRandomGame(10)
 	var printMutex sync.Mutex
 
-	player.Game.OnGameUpdate = func(game *blackjack.BlackjackGame) {
+	player.Game.OnGameUpdate = func(game *blackjack.GameSnapshot) {
 		printMutex.Lock()
 		defer printMutex.Unlock()
 		fmt.Printf("\n---\ngame_update: %v\n\nplayers: \n", game.GameState)
@@ -29,18 +28,15 @@ func main() {
 		player.Stand()
 	}
 
-	go func() {
-		time.Sleep(10 * time.Millisecond)
-		err := player.Bet(10)
-		if err != nil {
-			println("Error while betting", err.Error())
-		}
-	}()
+	err := player.Bet(10)
+	if err != nil {
+		println("Error while betting", err.Error())
+		panic(1)
+	}
 
-	player.Game.Start()
+	player.Game.Start(context.Background())
 
-	for player.Game.GameState != blackjack.NoState {
+	for player.Game.GameState.Get() != blackjack.NoState {
 	}
 	printMutex.Lock()
-	printMutex.Unlock()
 }

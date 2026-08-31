@@ -2,27 +2,39 @@ package manager
 
 import (
 	"context"
+	"sync"
 
 	"github.com/kraanter/blackjack/pkg/blackjack"
 )
 
 type ManagedPlayer struct {
-	Player     *blackjack.Player
-	GameId     GameId
-	Ctx        context.Context
-	cancelFunc context.CancelFunc
+	mu      sync.RWMutex
+	leaving bool
+	Player  *blackjack.Player `json:"player"`
+	GameId  GameId            `json:"game-id"`
 
-	Game *blackjack.BlackjackGame
+	Game *blackjack.BlackjackGame `json:"game"`
+
+	onGameUpdate func(*blackjack.GameSnapshot)
 }
 
-func createPlayer(ctx context.Context, game *blackjack.BlackjackGame, gameId GameId, player *blackjack.Player) *ManagedPlayer {
-	playerContext, cancel := context.WithCancel(ctx)
+func (p *ManagedPlayer) SetGameUpdateHandler(handler func(*blackjack.GameSnapshot)) {
+	p.mu.Lock()
+	p.onGameUpdate = handler
+	p.mu.Unlock()
+}
+
+func (p *ManagedPlayer) gameUpdateHandler() func(*blackjack.GameSnapshot) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	return p.onGameUpdate
+}
+
+func createPlayer(game *ManagedGame, gameId GameId, player *blackjack.Player) *ManagedPlayer {
 	return &ManagedPlayer{
-		Player:     player,
-		Game:       game,
-		GameId:     gameId,
-		Ctx:        playerContext,
-		cancelFunc: cancel,
+		Player: player,
+		Game:   game.blackjackGame,
+		GameId: gameId,
 	}
 }
 
@@ -30,57 +42,138 @@ func createPlayer(ctx context.Context, game *blackjack.BlackjackGame, gameId Gam
 // Returns false if game is not in state for player to receive card
 // Returns error if any other reason like player could not be found
 func (p *ManagedPlayer) Hit() (bool, error) {
-	return p.Game.PlayerHit(p.Player.PlayerNum)
+	p.mu.RLock()
+	game, player := p.Game, p.Player
+	p.mu.RUnlock()
+	if game == nil || player == nil {
+		return false, blackjack.PlayerNotFoundError
+	}
+	return game.PlayerHit(player.PlayerNum)
 }
 
 func (p *ManagedPlayer) Stand() error {
-	return p.Game.PlayerStand(p.Player.PlayerNum)
+	p.mu.RLock()
+	game, player := p.Game, p.Player
+	p.mu.RUnlock()
+	if game == nil || player == nil {
+		return blackjack.PlayerNotFoundError
+	}
+	return game.PlayerStand(player.PlayerNum)
+}
+
+func (p *ManagedPlayer) GetBalance() uint {
+	p.mu.RLock()
+	game, player := p.Game, p.Player
+	p.mu.RUnlock()
+	if game == nil || player == nil {
+		return 0
+	}
+	snapshotPlayer := game.Snapshot().PlayerMap[player.PlayerNum]
+	if snapshotPlayer == nil {
+		return 0
+	}
+	return snapshotPlayer.Balance
 }
 
 func (p *ManagedPlayer) Split() error {
-	return p.Game.PlayerSplit(p.Player.PlayerNum)
+	p.mu.RLock()
+	game, player := p.Game, p.Player
+	p.mu.RUnlock()
+	if game == nil || player == nil {
+		return blackjack.PlayerNotFoundError
+	}
+	return game.PlayerSplit(player.PlayerNum)
 }
 
 func (p *ManagedPlayer) Bet(amount uint) error {
-	return p.Game.SetPlayerBet(p.Player.PlayerNum, amount)
+	p.mu.RLock()
+	game, player := p.Game, p.Player
+	p.mu.RUnlock()
+	if game == nil || player == nil {
+		return blackjack.PlayerNotFoundError
+	}
+	err := game.SetPlayerBet(player.PlayerNum, amount)
+	if err == nil {
+		go game.Start(context.Background())
+	}
+	return err
 }
 
 func (p *ManagedPlayer) SkipBet() error {
-	return p.Game.SkipPlayerBet(p.Player.PlayerNum)
+	p.mu.RLock()
+	game, player := p.Game, p.Player
+	p.mu.RUnlock()
+	if game == nil || player == nil {
+		return blackjack.PlayerNotFoundError
+	}
+	err := game.SkipPlayerBet(player.PlayerNum)
+	if err == nil {
+		go game.Start(context.Background())
+	}
+	return err
 }
 
 func (p *ManagedPlayer) Leave() (balance uint, err error) {
-	defer p.cancelFunc()
-	defer func() {
-		p.Game = nil
-		p.GameId = GameId(0)
-		p.Player = nil
-	}()
-	return p.Game.RemovePlayer(p.Player.PlayerNum)
+	p.mu.Lock()
+	if p.Game == nil || p.Player == nil || p.leaving {
+		p.mu.Unlock()
+		return 0, blackjack.PlayerNotFoundError
+	}
+	game, player := p.Game, p.Player
+	p.leaving = true
+	p.mu.Unlock()
+
+	balance, err = game.RemovePlayer(player.PlayerNum)
+
+	p.mu.Lock()
+	p.Game = nil
+	p.GameId = GameId(0)
+	p.Player = nil
+	p.leaving = false
+	p.mu.Unlock()
+	return balance, err
 }
 
-func (p *Manager) JoinGame(ctx context.Context, balance uint, gameId GameId) *ManagedPlayer {
-	game, _ := p.GetGameWithId(gameId)
+func (p *Manager) JoinGame(balance uint, gameId GameId) *ManagedPlayer {
+	p.mu.RLock()
+	game := p.gameMap[gameId]
 	if game == nil {
+		p.mu.RUnlock()
 		return nil
 	}
 
-	player := game.AddPlayerWithBalance(balance)
+	player := game.blackjackGame.AddPlayerWithBalance(balance)
 
-	manPlayer := createPlayer(ctx, game, gameId, player)
-	go func() {
-		<-manPlayer.Ctx.Done()
+	manPlayer := createPlayer(game, gameId, player)
 
-		manPlayer.Leave()
-
-		if game.GetPlayerCount() == 0 {
-			p.removeGame(gameId)
-		}
-	}()
+	game.mu.Lock()
+	game.Players[manPlayer.Player.PlayerNum] = manPlayer
+	game.mu.Unlock()
+	p.mu.RUnlock()
 
 	return manPlayer
 }
 
 func (p *ManagedPlayer) String() string {
-	return p.Player.String()
+	p.mu.RLock()
+	game, player := p.Game, p.Player
+	p.mu.RUnlock()
+	if game == nil || player == nil {
+		return ""
+	}
+	snapshotPlayer := game.Snapshot().PlayerMap[player.PlayerNum]
+	if snapshotPlayer == nil {
+		return ""
+	}
+	return snapshotPlayer.String()
+}
+
+func (p *ManagedPlayer) Snapshot() *blackjack.GameSnapshot {
+	p.mu.RLock()
+	game := p.Game
+	p.mu.RUnlock()
+	if game == nil {
+		return nil
+	}
+	return game.Snapshot()
 }

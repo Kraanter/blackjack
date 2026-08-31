@@ -1,9 +1,9 @@
 package manager_test
 
 import (
+	"sync"
 	"testing"
 
-	"github.com/kraanter/blackjack/pkg/blackjack"
 	"github.com/kraanter/blackjack/pkg/manager"
 )
 
@@ -27,18 +27,47 @@ func TestManagerGetJoinableGameReturnsNewGameIfEmpty(t *testing.T) {
 	}
 }
 
+func TestJoinGameIsNotRemovedConcurrently(t *testing.T) {
+	man := manager.CreateManager(nil)
+	id, _ := man.GetJoinableGame()
+
+	var start sync.WaitGroup
+	start.Add(1)
+	var done sync.WaitGroup
+	done.Add(2)
+	var player *manager.ManagedPlayer
+	go func() {
+		defer done.Done()
+		start.Wait()
+		player = man.JoinGame(100, id)
+	}()
+	go func() {
+		defer done.Done()
+		start.Wait()
+		man.RemoveGame(id)
+	}()
+	start.Done()
+	done.Wait()
+
+	if player == nil {
+		return
+	}
+	if _, err := man.GetGameWithId(id); err != nil {
+		t.Fatal("joined player belongs to a removed game")
+	}
+}
+
 func TestManagerGetJoinableGameCreatesNewGameIfAllGamesFull(t *testing.T) {
 	want := uint(5)
 	settings := manager.CreateSettings()
 	settings.MinPlayerCount = 1
 	manager := manager.CreateManager(settings)
 
-	for _ = range want {
-		_, game := manager.GetJoinableGame()
-		if game == nil {
-			t.Fatalf("GetJoinableGame() = %v, want pointer to newly created game", game)
+	for range want {
+		player := manager.JoinRandomGame(0)
+		if player == nil {
+			t.Fatalf("GetJoinableGame() = %v, want pointer to newly created player", player)
 		}
-		game.AddPlayerWithBalance(0)
 	}
 
 	gameCount := manager.GetGameCount()
@@ -54,14 +83,13 @@ func TestManagerGetsCorrectGameIfGivenGameCode(t *testing.T) {
 	man := manager.CreateManager(settings)
 	numGames := 9
 
-	games := make([]*blackjack.BlackjackGame, 0)
-	for _ = range numGames {
-		_, game := man.GetJoinableGame()
-		if game == nil {
-			t.Fatalf("GetJoinableGame() = %v, want pointer to newly created game", game)
+	games := make([]*manager.ManagedPlayer, 0)
+	for range numGames {
+		player := man.JoinRandomGame(0)
+		if player == nil {
+			t.Fatalf("GetJoinableGame() = %v, want pointer to newly created player", player)
 		}
-		game.AddPlayerWithBalance(0)
-		games = append(games, game)
+		games = append(games, player)
 	}
 
 	for i := range numGames {

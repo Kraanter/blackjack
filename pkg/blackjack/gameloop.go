@@ -1,7 +1,8 @@
 package blackjack
 
 import (
-	"time"
+	"context"
+	"fmt"
 )
 
 type GameState = int
@@ -15,40 +16,87 @@ const (
 	PayoutState
 )
 
-func (b *BlackjackGame) Start() {
-	b.GameState = BettingState
-	b.sendGameUpdate()
+var NoPlayersInGameError = fmt.Errorf("Game does not have any players")
 
-	collectionChannel := make(chan bool)
-	go func() {
-		for b.GameState == BettingState && len(b.GetPlayersWihoutBets()) > 0 {
-			time.Sleep(100 * time.Millisecond)
-		}
-		collectionChannel <- true
-	}()
-
-	<-collectionChannel
-
-	b.DealInitialCards()
-	b.GameState = PlayingState
-	b.sendGameUpdate()
+func (b *BlackjackGame) Initialize() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.initialize()
 }
 
-func (b *BlackjackGame) DealInitialCards() {
-	if b.GameState == PlayingState {
+func (b *BlackjackGame) initialize() {
+	if b.GameState.Get() != NoState {
 		return
 	}
 
-	b.Dealer = CreateHand(0)
+	b.bettingStateChannel = make(chan struct{})
+	b.GameState.Set(BettingState)
+	b.gameloopTick()
+}
+
+// This starts the game until all bets are in
+// Then the gameplay loop is managed through the players
+// This ends when the game broadcasts that it goes into PlayingState
+func (b *BlackjackGame) Start(ctx context.Context) error {
+	_ = ctx
+	b.mu.Lock()
+	if b.GameState.Get() == NoState {
+		b.initialize()
+	}
+	state := b.GameState.Get()
+	b.mu.Unlock()
+
+	if state != BettingState {
+		return b.createGameStateError(BettingState)
+	}
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if len(b.PlayerMap) == 0 || len(b.GetPlayersWihoutBets()) > 0 {
+		return nil
+	}
+
+	b.dealInitialCards()
+	b.GameState.Set(PlayingState)
+	b.gameloopTick()
+
+	return nil
+}
+
+func (b *BlackjackGame) WaitUntilBettingFinished(ctx context.Context) error {
+	select {
+	case <-b.bettingStateChannel:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (b *BlackjackGame) DealInitialCards() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.dealInitialCards()
+}
+
+func (b *BlackjackGame) dealInitialCards() {
+	if b.GameState.Get() == PlayingState {
+		return
+	}
+
+	b.Dealer.Set(CreateHand(0))
 
 	for i := 0; i < 2; i++ {
-		for _, player := range b.playerMap {
+		for _, player := range b.PlayerMap {
 			if hand := player.GetActiveHand(); hand != nil {
 				b.dealCard(hand)
 			}
 		}
 
-		b.dealCard(b.Dealer)
+		if len(b.Dealer.Get().Cards) == 1 {
+			b.hiddenDealerCard.Set(b.shoe.DrawCard())
+		} else {
+			b.dealCard(b.Dealer.Get())
+		}
 	}
 }
 
@@ -56,15 +104,17 @@ func (b *BlackjackGame) DealInitialCards() {
 // Returns false if game is not in state for player to receive card
 // Returns error if any other reason like player could not be found
 func (game *BlackjackGame) PlayerHit(playerNum PlayerId) (bool, error) {
-	if game.GameState != PlayingState {
-		return false, WrongGameStateError
+	game.mu.Lock()
+	defer game.mu.Unlock()
+	if game.GameState.Get() != PlayingState {
+		return false, game.createGameStateError(PlayingState)
 	}
 
 	if isDealer, num := game.nextPlayersTurn(); isDealer || num != playerNum {
 		return false, WrongGameStateError
 	}
 
-	player, ok := game.GetPlayer(playerNum)
+	player, ok := game.getPlayer(playerNum)
 	if !ok {
 		return false, PlayerNotFoundError
 	}
@@ -79,27 +129,31 @@ func (game *BlackjackGame) PlayerHit(playerNum PlayerId) (bool, error) {
 }
 
 func (game *BlackjackGame) PlayerStand(playerNum PlayerId) error {
+	game.mu.Lock()
+	defer game.mu.Unlock()
 	if isDealer, num := game.nextPlayersTurn(); isDealer || num != playerNum {
 		return WrongGameStateError
 	}
 
-	player, ok := game.GetPlayer(playerNum)
+	player, ok := game.getPlayer(playerNum)
 	if !ok {
 		return PlayerNotFoundError
 	}
 
 	player.stand()
-	game.sendGameUpdate()
+	game.gameloopTick()
 
 	return nil
 }
 
 func (game *BlackjackGame) PlayerSplit(playerNum PlayerId) error {
+	game.mu.Lock()
+	defer game.mu.Unlock()
 	if isDealer, num := game.nextPlayersTurn(); isDealer || num != playerNum {
 		return WrongGameStateError
 	}
 
-	player, ok := game.GetPlayer(playerNum)
+	player, ok := game.getPlayer(playerNum)
 	if !ok {
 		return PlayerNotFoundError
 	}
@@ -127,24 +181,42 @@ func (game *BlackjackGame) PlayerSplit(playerNum PlayerId) error {
 	game.dealCard(hand)
 	game.dealCard(newHand)
 
-	game.sendGameUpdate()
+	game.gameloopTick()
 
 	return nil
 }
 
-func (game *BlackjackGame) DealerTurn() {
-	if game.GameState != DealerState {
-		return
+func (game *BlackjackGame) DealerTurn() error {
+	game.mu.Lock()
+	defer game.mu.Unlock()
+	return game.dealerTurn()
+}
+
+func (game *BlackjackGame) dealerTurn() error {
+	if game.GameState.Get() != DealerState {
+		return game.createGameStateError(DealerState)
 	}
 
-	for shouldDealerDrawCard(game.Dealer) {
-		game.dealCard(game.Dealer)
+	hiddenCard := game.hiddenDealerCard.Get()
+	if hiddenCard == nil {
+		return fmt.Errorf("No dealer card assigned: %w", WrongGameStateError)
 	}
 
-	game.Dealer.lock()
+	// Show the hidden dealer card
+	game.Dealer.Get().AddCard(hiddenCard)
+	game.hiddenDealerCard.Set(nil)
 	game.sendGameUpdate()
 
+	for shouldDealerDrawCard(game.Dealer.Get()) {
+		game.dealCard(game.Dealer.Get())
+	}
+
+	game.Dealer.Get().lock()
+	game.gameloopTick()
+
 	game.finishRound()
+
+	return nil
 }
 
 func shouldDealerDrawCard(hand *Hand) bool {
@@ -168,13 +240,13 @@ func (game *BlackjackGame) dealCard(hand *Hand) bool {
 	card := game.shoe.DrawCard()
 	ok := hand.AddCard(card)
 
-	game.sendGameUpdate()
+	game.gameloopTick()
 
 	return ok
 }
 
 func (game *BlackjackGame) finishRound() {
-	game.GameState = PayoutState
+	game.GameState.Set(PayoutState)
 	game.sendGameUpdate()
 	game.reset()
 }
